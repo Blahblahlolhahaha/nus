@@ -1,0 +1,29 @@
+function [sad sadd] = diagg(matrix, size)
+    syms x
+    %get values
+    poly = det(x*eye(size) - matrix)
+    eigenval = sort(solve(poly),"descend")
+    %create d slowly
+    d = zeros(size);
+    P = []
+    count = 1;
+    for val = eigenval'
+        
+        %set eigenvalue into d
+        d(count,count) = sym(val);  
+        count = count + 1;
+        if val == x
+            continue
+        end
+        x = val
+        cry = sym(eval(x*eye(size) - matrix));
+        %go solve s
+        sad = rref(cry)
+        disp("Eigenspace:")
+        disp(null(sad))
+        P = [P null(sad)];
+        
+    end
+    sad = P;
+    sadd = d;
+end

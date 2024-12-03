@@ -1,0 +1,52 @@
+public class Some<T> {
+  private final T something;
+  
+  private Some(T something) {
+    this.something = something;
+  }
+
+  public static <T> Some<T> some(T something) {
+    return new Some<T>(something);
+  }
+
+  public <U> Some<U> map(Transformer<T,U> transformer) {
+    return new Some<U>(transformer.transform(this.something));
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if(obj instanceof Some<?>) {
+      //Since we checked whether if obj is an instance of Some<?>
+      //we can safely cast obj into Some<T>
+      @SuppressWarnings("unchecked")
+      Some<T> some = (Some<T>) obj;
+      if(some.something instanceof T) {
+        return some.something.equals(this.something);
+      }
+    }
+    return false;
+  }
+  @Override
+  public String toString(){
+    return "[" + this.something + "]";
+  }
+  
+  
+}
+public interface Transformer<T,U>{
+  public U transform(T t);
+
+}
+class AddOne implements Transformer<Integer, Integer> {
+    @Override
+     public Integer transform(Integer arg) {
+        return arg + 1;
+    }}
+class StrLen implements Transformer<String, Integer> {
+    @Override
+    public Integer transform(String arg) {
+         return arg.length();
+    }}
+AddOne fn1 = new AddOne();
+StrLen fn2 = new StrLen();
+Some.some(4).<Integer>map(fn1)
