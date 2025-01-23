@@ -17,7 +17,7 @@ public class LoadBalancing {
         // TODO: Implement this
         int currentLoad = 0;
         int cp = 1;
-        if(jobSizes.length == 0) {
+        if(p <= 0 || jobSizes.length == 0) {
             return false;
         }
         for(int size: jobSizes) {
@@ -42,14 +42,12 @@ public class LoadBalancing {
      * @param jobSizes the sizes of the jobs to be performed
      * @return the heaviest job in the list
      */
-    public static int findMax(int[] jobSizes){
-        int max = 0;
+    public static int findSum(int[] jobSizes){
+        int total = 0;
         for(int size: jobSizes){
-            if(max < size){
-                max = size;
-            }
+           total += size; 
         }
-        return max;
+        return total;
     }
 
     /**
@@ -61,23 +59,27 @@ public class LoadBalancing {
      */
     public static int findLoad(int[] jobSizes, int p) {
         // TODO: Implement this
-        if(jobSizes.length == 0) {
+        if(p <= 0 || jobSizes.length == 0) {
             return -1;
         }
 
-        int max = findMax(jobSizes);
-
-        if(jobSizes.length <= p){
-            return max;
-        }
+        int begin = 0;
+        int end = findSum(jobSizes);
+        int mid = 0;
+        if(p == 1){
+           return end;
+        } 
         
-        boolean feasible = false;
-        do{
-            feasible = isFeasibleLoad(jobSizes, max, p); 
-            max++;
-        }while(!feasible);
-
-        return max - 1;
+        while(begin <= end){
+           mid = (begin + end) / 2; 
+           if(isFeasibleLoad(jobSizes,mid,p)){
+              end = mid - 1;
+           }
+           else{
+             begin = mid + 1;
+           }
+        } 
+        return begin;
     }
 
     // These are some arbitrary testcases.
