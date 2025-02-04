@@ -12,11 +12,16 @@ public class Optimization {
             {4, -100, -80, 15, 20, 25, 30},
             {2, 3, 4, 5, 6, 7, 8, 100, 99, 98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83},
             {5},
-            {5,4,3,2,1},
-            {1,2,3,4,5},
-            {1,2},
-            {8,4},
-            {}
+            {-1,-1},
+            {-100,-50,-10,-50,-100},
+            {1,2,3,5},
+            {5,5,5,5,3,5,5,5,5},
+            null,
+            {},
+            {-1},
+            {-1,-2},
+            {-2,-1},
+            {1,2,1,0,-1}
     };
 
     /**
@@ -26,15 +31,13 @@ public class Optimization {
      * @return the maximum item in data Array
      */
     public static int searchMax(int[] dataArray) {
-        // TODO: Implement this
         // search for transition point, then compare ends if both
-        int length = dataArray.length;
         
-        if(length == 0) {
-            // return 0 for empty array
+        if(dataArray == null || dataArray.length == 0) {
+            // return 0 for empty/null array
             return 0;
         }
-
+        int length = dataArray.length;
         if(length == 1) {
             //returns first element immediately if length == 1
             return dataArray[0];
@@ -44,37 +47,36 @@ public class Optimization {
             //might as well
             return increasing ? dataArray[1] : dataArray[0];
         }
-        boolean found = false; //found transition point
         int begin = 0;
         int end = length - 1;
-        while(!found) {
-            int mid = ((end + begin) / 2);
+        while(begin <= end) {
+            int mid = ((end + begin) / 2); //find mid point
             if( mid == length - 1 || mid == 0){
                 return increasing ? dataArray[mid] : dataArray[0];
             }
             int test = dataArray[mid];
             int back = dataArray[mid - 1];
             int front = dataArray[mid + 1];
-            found = (back > test && 
+            boolean found = (back > test && 
                 front > test) ||  
                 (back < test && 
                 front < test);
            if(found) {
               if(!increasing) {
-                 return dataArray[0] >= dataArray[length - 1] ? dataArray[0] : dataArray[length - 1];
+                 return dataArray[0] > dataArray[length - 1] ? dataArray[0] : dataArray[length - 1];
               } else {
                  return dataArray[mid];
               } 
            }
-           if(test < front) {
+           if(test <= front) {
                if(increasing) {
                    begin = mid + 1;
                } else {
-                   end = mid - 1;
+                   end = mid;
                }
-           } else {
+           }else {
                if(increasing) {
-                   end = mid - 1;
+                   end = mid;
                }
                else {
                    begin = mid + 1;
