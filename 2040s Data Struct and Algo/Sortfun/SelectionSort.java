@@ -1,14 +1,14 @@
 public class SelectionSort extends SortAlgo{
 
-    public SelectionSort(int[] data){
-        super(data);
+    public SelectionSort(String name, int[] data){
+        super(name, data);
     }
 
     public void sort(){
-        for(int i = 0; i < data.length; i++){
+        for(int i = 0; i < data.length -1; i++){
             int min = data[i];
             int index = i;
-            for(int j = i; j < data.length - 1; j++){
+            for(int j = i; j < data.length; j++){
                 if(min > data[j]){
                     min = data[j];
                     index = j;

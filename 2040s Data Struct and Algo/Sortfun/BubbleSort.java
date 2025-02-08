@@ -1,7 +1,7 @@
 public class BubbleSort extends SortAlgo {
     
-    public BubbleSort(int[] data) {
-        super(data);
+    public BubbleSort(String name, int[] data) {
+        super(name, data);
     }
 
     public void sort() {

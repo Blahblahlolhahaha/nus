@@ -1,7 +1,7 @@
 public class InsertionSort extends SortAlgo{
 
-    public InsertionSort(int[] data){
-        super(data);
+    public InsertionSort(String name, int[] data){
+        super(name, data);
     }
 
     public void sort(){
@@ -11,6 +11,9 @@ public class InsertionSort extends SortAlgo{
                     int temp = data[j];
                     data[j] = data[j-1];
                     data[j-1] = temp;
+                }
+                else{
+                    break;
                 }
             }
         } 
