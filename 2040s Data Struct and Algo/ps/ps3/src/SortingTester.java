@@ -67,16 +67,22 @@ public class SortingTester {
 
     public static void main(String[] args) {
         // TODO: implement this
-        ISort[] sorters = {new SorterA(), new SorterB(), new SorterD(), new SorterE(), new SorterF()};
-        String[] names = {"SorterA", "SorterB", "SorterD", "SorterE", "SorterF"};
+        ISort[] sorters = {new SorterA(), new SorterB(), new SorterC(), new SorterD(), new SorterE(), new SorterF()};
+        String[] names = {"SorterA", "SorterB", "SorterC","SorterD", "SorterE", "SorterF"};
         for(int i = 0; i < sorters.length; i++){
             ISort sort = sorters[i];
             String out = "Sorter: " + names[i] + "\n";
             out += "Good Sort: " + checkSort(sort,10000) + "\n";
-            out += "Stable: " + isStable(sort,10000) + "\n";
-            out += "Avg: " + sort.sort(generateArray(10000)) + "\n";
-            out += "Worst: " + sort.sort(generateWorstCase(10000)) + "\n";
-            out += "Best: " + sort.sort(generateBestCase(10000)) + "\n";
+            out += "Stable: " + isStable(sort,100) + "\n";
+            long ten = sort.sort(generateArray(10));
+            long hundred = sort.sort(generateArray(100));
+            long thousand = sort.sort(generateArray(1000));
+            out += "Size 10: " + ten + "\n";
+            out += "Size 100: " + hundred + "\n";
+            out += "Size 1000: " + thousand+ "\n";
+            out += "Ratio: " + hundred/ten + ", " + thousand/hundred + "\n";
+            out += "Worst: " + sort.sort(generateWorstCase(1000)) + "\n";
+            out += "Best: " + sort.sort(generateBestCase(1000)) + "\n";
             System.out.println(out);
         }
     }
