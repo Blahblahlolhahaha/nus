@@ -7,7 +7,7 @@ source "$d0/common.sh"
 mkdirTmp
 findPy3
 
-py38="/usr/bin/python3"
+py38="python3"
 
 genRandPorts() {
   echo $$ | gawk '{ srand(systime()+$0*100) }END{ print int(rand()*(65534-1025))+1025; print int(rand()*(65534-1025))+1025; print int(rand()*(65534-1025))+1025 }'
