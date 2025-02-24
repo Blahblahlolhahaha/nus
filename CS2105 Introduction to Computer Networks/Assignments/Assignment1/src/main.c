@@ -39,11 +39,20 @@ void (*findHandler(Req* req))(int,Req*);
 
 void handleRequest(int);
 
-Req parseRequest(char*);
+int parseRequest(char*, Req*);
 
 void getKey(int, Req*);
 
 void postKey(int, Req*);
+
+void deleteKey(int, Req*);
+
+void getCounter(int, Req*);
+
+void postCounter(int, Req*);
+
+void deleteCounter(int, Req*);
+
 
 int hash(char*);
 
@@ -90,6 +99,10 @@ int main(int argc, char** argv){
     memset(routes,0,MAX);
     setHandler("GET", "/key/:id", getKey);
     setHandler("POST", "/key/:id", postKey);
+    setHandler("DELETE", "/key/:id", deleteKey);
+    setHandler("GET","/counter/:id",getCounter);
+    setHandler("POST", "/counter/:id",postCounter);
+    setHandler("DELETE","/counter/:id",deleteCounter);
     while(1){
         if((new_socket = accept(socket_fd, (struct sockaddr*)&address, &addrlen)) < 0){
             perror("accept failed");
@@ -126,24 +139,39 @@ void cleanReq(Req* req){
     }
 }
 
+void cleanKeyPair(HashedPair* pair){
+    memset(pair->value,0,strlen(pair->value));
+    free(pair->value);
+    pair->value = NULL;
+    pair->value = 0;
+    memset(pair,0,sizeof(HashedPair));
+    free(pair);
+    pair = NULL;
+}
+
 void handleRequest(int socket){
     while(1){
         char buffer[1024] = {0};
         int valread = read(socket, buffer, 1023);
+        int len = strlen(buffer);
         if(valread == 0){
             break;
         }
-        Req req = parseRequest(buffer);
-        if(!req.method){
-            write(socket, METHOD_NOT_ALLOWED, strlen(METHOD_NOT_ALLOWED));
-            continue;
+        int read = 0;
+        while(read < len){
+            Req req = {0};
+            read += parseRequest(buffer + read,&req);
+            if(!req.method){
+                break;
+            }
+            void (*ptr)(int,Req*) = findHandler(&req);
+            if(ptr == NULL){
+                write(socket, METHOD_NOT_ALLOWED, strlen(METHOD_NOT_ALLOWED));
+            }
+            ptr(socket,&req);
+            cleanReq(&req);
+
         }
-        void (*ptr)(int,Req*) = findHandler(&req);
-        if(ptr == NULL){
-            write(socket, METHOD_NOT_ALLOWED, strlen(METHOD_NOT_ALLOWED));
-        }
-        ptr(socket,&req);
-        cleanReq(&req);
     }
 }
 
@@ -192,11 +220,11 @@ void (*findHandler(Req* req))(int,Req*){
     return NULL;
 }
 
-Req parseRequest(char* buf){
+int parseRequest(char* buf, Req* req){
+    int read = 0;
     char* space = strstr(buf, " ");
     if(!space){
-        Req null = {0};
-        return null;
+        return -1;
     }
     int methodLength = space - buf + 1;
     char* method = (char*) malloc(methodLength);
@@ -207,53 +235,85 @@ Req parseRequest(char* buf){
     memset(method,0,methodLength);
     strncpy(method,buf,methodLength-1);
     buf+= methodLength;
+    read += methodLength - 1;
     space = strstr(buf, " ");
     if(!space){
-        Req null = {0};
-        return null;
+        memset(method,0, methodLength);
+        free(method);
+        method = NULL;
+        return -1;
     } 
     int pathLength = space - buf + 1;
     char* path = (char*) malloc(pathLength);
     if(!path){
+        memset(method,0,methodLength);
+        free(method);
         perror("Error parsing request");
         exit(-1);
     }
     memset(path,0,pathLength);
     strncpy(path, buf, pathLength - 1);
-    Req req = {method,path,0,0};
-    if(!strncmp(req.method, "POST", 4)){
+    read += pathLength - 1;
+    if(!strncmp(method, "POST", 4)){
         buf += pathLength;
         space = strstr(buf,"Content-Length ");
         if(!space){
-            req.method = 0;
-            return req;
+            space = strstr(buf,"content-length ");
+            if(!space){
+                memset(method,0,methodLength);
+                free(method);
+                memset(path,0,strlen(path));
+                free(path);
+                return -1;
+            }
         }
         buf += strlen("Content-Length ");
+        read += strlen("Content-Length ");
         space = strstr(buf,"  ");
         if(!space){
-            req.method = 0;
-            return req;
+            memset(method,0,methodLength);
+            free(method);
+            memset(path,0,strlen(path));
+            free(path);
+            return -1;
         }
         int numLen = space - buf + 1;
         char* num = (char*) malloc(numLen);
         if(!num){
-            perror("Error parsing request");
-            exit(-1);
+           memset(method,0,methodLength);
+           free(method);
+           memset(path,0,strlen(path));
+           free(path);
+           perror("Error parsing request");
+           exit(-1);
         } 
         memset(num,0,numLen);
         strncpy(num, buf, numLen - 1);
+        read += numLen;
         int contentLength = atoi(num);
         char* content = (char*)malloc(contentLength + 1);
         if(!content){
+            memset(method,0,methodLength);
+            free(method);
+            memset(path,0,strlen(path));
+            free(path);
+            memset(num,0,numLen);
+            free(num);
             perror("Error parsing request");
             exit(-1);
         }
         memset(content,0,contentLength + 1);
         strncpy(content, space + 2, contentLength);
-        req.body = content;
-        return req;
+        read += contentLength + 3;
+        req->method = method;
+        req->path = path;
+        req->body = content;
+        return read;
     }
-    return req;
+    read += 3;
+    req->path = path;
+    req->method = method;
+    return read;
 }
 
 void setHandler(char* method, char* path, void (*handler)(int, Req*)){
@@ -284,24 +344,6 @@ void setHandler(char* method, char* path, void (*handler)(int, Req*)){
     filled++;
 }
 
-void getKey(int fd, Req* req){
-    int hashKey = hash(req->params);
-    for(int i = 0;i < 128; i++){
-        if(keyStore[i] && keyStore[i]->key == hashKey){
-            char* value = keyStore[i]->value;
-            char buffer[256] = {0};
-            printf("%s\n",value);
-            strcpy(buffer,OK);
-            strcpy(buffer + strlen(buffer), "Content-Length ");
-            sprintf(buffer+strlen(buffer),"%d",strlen(value));
-            strcpy(buffer + strlen(buffer), "  ");
-            strcpy(buffer + strlen(buffer), value);
-            write(fd,buffer,strlen(buffer));
-            break;
-        }
-    }
-}
-
 int containsKey(int hash){
     for(int i = 0;i < 128;i++){
         HashedPair* pair = keyStore[i];
@@ -310,6 +352,66 @@ int containsKey(int hash){
         }
     }
     return 0;
+}
+
+int getCounter(int hash){
+    for(int i = 0;i < 128;i++){
+        HashedPair* pair = counterStore[i];
+        if(pair && pair->key == hash){
+            return (*(int*)(pair->value));
+        }
+    }
+    return -1;
+}
+
+HashedPair* getPair(int hash){
+    for(int i = 0; i < 128; i++){
+        if(keyStore[i] && keyStore[i]->key == hash){
+            return keyStore[i];
+        }
+    }
+    return 0;
+}
+
+HashedPair* getCounterPair(int hash){
+    for(int i = 0; i < 128; i++){
+        if(counterStore[i] && counterStore[i]->key == hash){
+            return counterStore[i];
+        }
+    }
+    return 0;
+}
+
+void getKey(int fd, Req* req){
+    int hashKey = hash(req->params);
+    HashedPair* pair = getPair(hashKey);
+    if(pair){ 
+        char* value = pair->value;
+        char buffer[256] = {0};
+        strcpy(buffer,OK);
+        strcpy(buffer + strlen(buffer), "Content-Length ");
+        sprintf(buffer+strlen(buffer),"%d",strlen(value));
+        strcpy(buffer + strlen(buffer), "  ");
+        strcpy(buffer + strlen(buffer), value);
+        write(fd,buffer,strlen(buffer));
+    }
+}
+
+void getCounter(int fd, Req* req){
+    int hashKey = hash(req->params);
+    HashedPair* pair = getCounterPair(hashKey);
+    if(pair){
+        int *value = pair->value;
+        char buffer[256] = {0};
+        char number[128] = {0};
+        sprintf(number,"%d",*value);
+        strcpy(buffer,OK);
+        strcpy(buffer + strlen(buffer), "Content-Length ");
+        sprintf(buffer+strlen(buffer),"%d", strlen(number));
+        strcpy(buffer + strlen(buffer), "  ");
+        strcpy(buffer + strlen(buffer), number);
+        write(fd,buffer,strlen(buffer));
+    }
 }
 
 void postKey(int fd, Req* req){
@@ -347,8 +449,23 @@ void postKey(int fd, Req* req){
     }
 }
 
+void deleteKey(int fd, Req* req){
+    int hashKey = hash(req->params);
+    if(strstr(req->path,"/key") == req->path){
+        if(!containsKey(hashKey)){
+            write(fd, NOT_FOUND, strlen(NOT_FOUND));
+            return;
+        }
+        if(getCounter(hashKey) > 0){
+            write(fd, METHOD_NOT_ALLOWED, strlen(METHOD_NOT_ALLOWED));
+            return;
+        }
+        getKey(fd, req);
+        cleanKeyPair(getPair(hashKey));
+    }
+}
+
 int hash(char* str){
-    printf("%d\n",str[3]);
     int len = strlen(str);
     int seed = 7;
     for(int i = 0;i < len; i++){
