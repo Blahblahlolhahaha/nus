@@ -27,16 +27,18 @@ public class Main{
     }
 
     public static void main(String[] args){
-        BubbleSort sort = new BubbleSort("Bubble", generateArray(300000));
-        SelectionSort sorty = new SelectionSort("Selection", generateArray(300000));
-        InsertionSort sortyy = new InsertionSort("Insertion", generateArray(300000));
+        BubbleSort sort = new BubbleSort("Bubble", generateArray(30000));
+        SelectionSort sorty = new SelectionSort("Selection", generateArray(30000));
+        InsertionSort sortyy = new InsertionSort("Insertion", generateArray(30000));
         MergeSort sortyyy = new MergeSort("Merge", generateArray(300000));
-        SortAlgo[] algos = new SortAlgo[]{sorty,sortyy,sortyyy};
+        QuickSort sortyyyy = new QuickSort("Quick", generateArray(300000));
+        QuickySort sortyyyyy = new QuickySort("Quick", generateArray(300000));
+        SortAlgo[] algos = new SortAlgo[]{sort,sorty,sortyy,sortyyy,sortyyyy,sortyyyyy};
         for(SortAlgo algo: algos){
             time(algo);
-            algo.setData(generateSorted(300000));
+            algo.setData(generateSorted(30000));
             time(algo);
-            algo.setData(generateReverse(300000));
+            algo.setData(generateReverse(30000));
             time(algo);
         }
     }
