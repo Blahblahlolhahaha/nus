@@ -89,20 +89,20 @@ class WindowHandler{
             sock.receive(recvPacket);
             sock.close();
             byte ack = recv[0];
+            byte end = recv[1];
             int checksum = 0;
             for(int i = 1; i< 5;i++){
                 checksum += recv[i] << ((i-1) * 8);
             }
-            Packet packet2 = new Packet(ack,checksum);
-            if(!packet2.check() && ack != packSeq){
+            Packet packet2 = new Packet(ack,end,checksum);
+            if(!packet2.check() && ack != packSeq && end != 1){
                 throw new IOException();
             }
             else{
                 packet.acked = true;
             }
         } catch(IOException e){
-            //WindowHandler.sendPacket(sockAddr,packet);
-            packet.acked = true;
+            WindowHandler.sendPacket(sockAddr,packet);
             return;
         }
     } 
@@ -148,8 +148,9 @@ class Packet{
         CHECK.reset();
     }
 
-    public Packet(byte seq, int checksum){
+    public Packet(byte seq, byte end, int checksum){
         this.seq = seq;
+        this.end = end;
         this.checksum = checksum;
     }
 
@@ -180,6 +181,7 @@ class Packet{
 
     public boolean check(){
         CHECK.update(this.seq);
+        CHECK.update(this.end);
         long checksum = CHECK.getValue();
         CHECK.reset();
         return checksum == this.checksum;
