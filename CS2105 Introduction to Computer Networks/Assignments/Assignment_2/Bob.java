@@ -6,9 +6,12 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 class Bob{
-    public static int expected = 0;
     public static final CRC32 crc32 = new CRC32();
+    public static int corrupted = 0;
+    public static int exp = 0;
     public static void main(String[] args) throws SocketException, UnknownHostException{
         if(args.length == 0){
             System.out.println("Usage: java Alice <port number>");
@@ -25,28 +28,32 @@ class Bob{
             System.out.println("Invalid port number!");
             return;
         }
-        InetAddress addr = InetAddress.getLocalHost();
-        InetSocketAddress sockAddr = new InetSocketAddress(addr,port); 
-        DatagramSocket sock = new DatagramSocket();
-        byte[] buf = new byte[64];
+        Ring ring = new Ring();
+        InetSocketAddress sockAddr = new InetSocketAddress("127.0.0.1",port); 
+        DatagramSocket sock = new DatagramSocket(sockAddr);
         byte[] send = new byte[6];
         while(true){
             try{
-                DatagramPacket packet = new DatagramPacket(buf,buf.length);
+                byte[] buf = new byte[64];
+                DatagramPacket packet = new DatagramPacket(buf,buf.length); 
                 sock.receive(packet);
                 if(!check(buf,packet.getLength())){
                     send[0] = 0;
                     send[1] = 0;
-                
                 }
                 else{
-                    System.out.println(new String(buf,6,packet.getLength()-6));
-                    send[0] = buf[0];
-                    send[1] = 1;
+                    if(ring.insertBuf(buf,packet.getLength())){
+                        send[0] = buf[0];
+                        send[1] = 1;
+                    } else{
+                        send[0] = buf[0];
+                        send[1] = 1;
+                    }
                 }
                 crc32.update(send[0]);
                 crc32.update(send[1]);
                 long checksum = crc32.getValue();
+                crc32.reset();
                 for(int i = 0; i< 4;i++){
                     send[2+i] = (byte)(checksum & 0xff);
                     checksum = checksum >> 8;
@@ -73,6 +80,53 @@ class Bob{
             test += (long)((data[i])&0xff) << ((i-2) * 8);
         }
         return checksum == test;
+    }
+}
+
+class Ring{
+    public static int WINDOW = 32;
+    private byte[][] ring = new byte[WINDOW][];
+    private int expSeq = 0;
+    private int head = 0;
+
+    public boolean insertBuf(byte[] buf, int length){
+        buf = Arrays.copyOf(buf,length);
+        int seq = (buf[0] & 0xff);
+        if(seq <  WINDOW - 2 && expSeq >= 256 - WINDOW + 1){
+            seq += 256;
+        }
+        int end = expSeq + WINDOW;
+        if(seq < expSeq || seq >= end){
+            return true;
+        }
+        int insert = (head + (seq - expSeq)) % WINDOW;
+        ring[insert] = buf;
+        if(expSeq == seq){
+            loopRing();
+        } 
+        return true;
+    }
+
+    private void loopRing(){
+        for(int i = 0; i < WINDOW; i++){
+            byte[] buf = ring[head];
+            if(buf == null){
+                break;
+            }
+            printBuf(buf);
+            ring[head] = null;
+            expSeq = (expSeq + 1) % 256;
+            Bob.exp = expSeq;
+            head = (head + 1) % WINDOW;
+        }
+    }
+
+    public void printBuf(byte[] buf){
+        String data = new String(buf,6,buf.length - 6);
+        if(buf[1] == 1){
+            data += "\n";
+        }
+        System.out.printf("%s",data);
     }
 }
 

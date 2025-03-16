@@ -3,6 +3,7 @@ import java.util.stream.Stream;
 import java.util.Arrays;
 import java.lang.Exception;
 import java.lang.Thread;
+import java.lang.Runnable;
 import java.net.DatagramSocket;
 import java.net.DatagramPacket;
 import java.net.SocketException;
@@ -32,8 +33,7 @@ class Alice{
         }
 
         
-        InetAddress addr = InetAddress.getLocalHost();  
-        InetSocketAddress sockAddr = new InetSocketAddress(addr,port);
+        InetSocketAddress sockAddr = new InetSocketAddress("127.0.0.1",port);
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         Stream<String> lines = br.lines();
         WindowHandler handler = new WindowHandler(sockAddr);
@@ -44,10 +44,12 @@ class Alice{
 }
 
 class WindowHandler{
-    private static final int TIMEOUT = 50;
-    private volatile Packet[] buffer;
-    private InetSocketAddress sockAddr;
-    
+    private static final int TIMEOUT = 30;
+    public static final int WINDOW = 32;
+    private volatile static Packet[] buffer;
+    private volatile static int acked = 0;
+    private volatile static int loc = -1;
+    private InetSocketAddress sockAddr; 
     public  WindowHandler(InetSocketAddress sockAddr){
         this.sockAddr = sockAddr; 
     }
@@ -57,73 +59,83 @@ class WindowHandler{
     }
 
     public void send(){
-        Thread[] threads = new Thread[5];
-        threads[0] = new Thread(()->threader(0));
-        threads[1] = new Thread(()->threader(1));
-        threads[2] = new Thread(()->threader(2));
-        threads[3] = new Thread(()->threader(3));
-        threads[4] = new Thread(()->threader(4));
-        for(int i = 0; i< 5; i++){
-            threads[i].start();
-        }
-        for(int i = 0; i < 5; i++){
-            try{
-                threads[i].join();
-            }catch(InterruptedException e){
-               System.exit(0); 
-            }
-        }
-
-    }
-
-    public static void sendPacket(InetSocketAddress sockAddr, Packet packet){
-        try{
-            DatagramSocket sock = new DatagramSocket();
-            byte[] data = packet.getData();
-            byte packSeq = data[0];
-            DatagramPacket sendPacket = new DatagramPacket(data,data.length, sockAddr);
-            sock.send(sendPacket);
-            byte[] recv = new byte[64];
-            DatagramPacket recvPacket = new DatagramPacket(recv, 64, sockAddr);
-            sock.setSoTimeout(TIMEOUT);
-            sock.receive(recvPacket);
-            sock.close();
-            byte ack = recv[0];
-            byte end = recv[1];
-            int checksum = 0;
-            for(int i = 1; i< 5;i++){
-                checksum += recv[i] << ((i-1) * 8);
-            }
-            Packet packet2 = new Packet(ack,end,checksum);
-            if(!packet2.check() && ack != packSeq && end != 1){
-                throw new IOException();
-            }
-            else{
-                packet.acked = true;
-            }
-        } catch(IOException e){
-            WindowHandler.sendPacket(sockAddr,packet);
-            return;
-        }
-    } 
-
-    public void threader(int i){
+        int i = 0;
+        SendThread[] threads = new SendThread[WINDOW];
         while(i < buffer.length){
-            sendPacket(sockAddr,buffer[i]);
-            while(true){
-                try{ 
-                    Thread.sleep(25);
-                    if(i == 0 || buffer[i-1].acked){
-                        i += 5;
-                        break;
-                    }
-                }catch(InterruptedException e){
-                    System.exit(0);
+            for(int x = 0;x < WINDOW; x++){
+                if(i + x == buffer.length){
+                    break;
+                }
+                if(!buffer[x + i].acked){
+                    threads[x] = new SendThread(x + i);
+                    threads[x].start();
                 }
             }
+            for(int x = 0; x < WINDOW; x++){
+                if(i + x == buffer.length){
+                    break;
+                }
+                try{
+                    threads[x].join();
+                    if(x + i - loc == 1 && buffer[x + i].acked){
+                        loc++;
+                    }
+                }catch(InterruptedException e){
+                    continue;
+                }
+            }
+            i = loc + 1;
         }
+    
     }
 
+    public boolean sendPacket(InetSocketAddress sockAddr, Packet packet) throws IOException{
+        DatagramSocket sock = new DatagramSocket();
+        byte[] data = packet.getData();
+        DatagramPacket sendPacket = new DatagramPacket(data,data.length, sockAddr);
+        sock.send(sendPacket);
+        byte[] recv = new byte[64];
+        DatagramPacket recvPacket = new DatagramPacket(recv, 64, sockAddr);
+        sock.setSoTimeout(TIMEOUT);
+        sock.receive(recvPacket);
+        sock.close();
+        byte ack = recv[0];
+        byte end = recv[1];
+        long checksum = 0;
+        for(int i = 2; i< 6;i++){
+            checksum += (long)((recv[i]) & 0xff) << ((i-2) * 8);
+        }
+        Packet packet2 = new Packet(ack,end,checksum);
+        //System.out.println("ack:" + ack);
+        //System.out.println("seq:" + data[0]);
+        if(packet2.check() && data[0] == ack){
+            return true;
+        }
+        return false;
+    } 
+
+    private class SendThread extends Thread{
+        private int i;
+
+        public SendThread(int i){
+            this.i = i;
+        }
+
+        @Override
+        public void run() {
+            try{
+                synchronized(buffer){
+                    if(sendPacket(sockAddr,buffer[i])){
+                        //System.out.println("acked!");
+                        buffer[i].acked = true;
+                    }
+                }
+            }catch(IOException e){
+                return;
+            }
+        }
+    
+    }
 
 }
 
@@ -133,7 +145,7 @@ class Packet{
     private byte end;
     private long checksum;
     private byte[] data;
-    boolean acked = false;
+    public boolean acked = false;
     private static final CRC32 CHECK = new CRC32();
     private static final int maxData = 58;
     private static byte currSeq = 0;
@@ -148,7 +160,7 @@ class Packet{
         CHECK.reset();
     }
 
-    public Packet(byte seq, byte end, int checksum){
+    public Packet(byte seq, byte end, long checksum){
         this.seq = seq;
         this.end = end;
         this.checksum = checksum;
@@ -184,7 +196,7 @@ class Packet{
         CHECK.update(this.end);
         long checksum = CHECK.getValue();
         CHECK.reset();
-        return checksum == this.checksum;
+        return checksum == this.checksum && this.end == 1;
     }
 
 
@@ -207,6 +219,14 @@ class Packet{
             check += (long)((sad[i])&0xff) << ((i-2)*8);
         }
         return sad;
+    }
+
+    public int getDiff(int seq){
+        int diff = seq - this.seq;
+        if(diff < 0 && seq < WindowHandler.WINDOW && this.seq <= 255 - WindowHandler.WINDOW + 2){
+            diff += 256;
+        }
+        return diff;
     }
 
 }
