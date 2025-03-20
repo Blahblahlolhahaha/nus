@@ -1,0 +1,124 @@
+import java.util.LinkedList;
+
+public class MazeSolver implements IMazeSolver {
+	private static final int NORTH = 0, SOUTH = 1, EAST = 2, WEST = 3;
+	private static int[][] DELTAS = new int[][] {
+		{ -1, 0 }, // North
+		{ 1, 0 }, // South
+		{ 0, 1 }, // East
+		{ 0, -1 } // West
+	};
+
+    private Maze maze;
+    private LinkedList<Coord> queue;
+    private Coord end;
+	public MazeSolver() {
+        this.maze = null;    
+        this.queue = new LinkedList<>();
+    }
+
+	@Override
+	public void initialize(Maze maze) {
+		// TODO: Initialize the solver.
+	    this.maze = maze;
+    }
+
+	@Override
+	public Integer pathSearch(int startRow, int startCol, int endRow, int endCol) throws Exception {
+        if(maze == null){
+            throw new Exception("GG maze not initialized");
+        }
+
+        if (startRow < 0 || startCol < 0 || startRow >= maze.getRows() || startCol >= maze.getColumns() ||
+				endRow < 0 || endCol < 0 || endRow >= maze.getRows() || endCol >= maze.getColumns()) {
+			throw new IllegalArgumentException("Invalid start/end coordinate");
+		}
+        
+        for(int i = 0; i < maze.getRows(); i++){
+            for(int j = 0; j< maze.getColumns(); j++){
+                maze.getRoom(i, j).onPath = false;
+            }
+        }
+        queue.clear();
+        queue.add(new Coord(startRow,startCol,null));
+		return solve(endRow,endCol);
+	}
+
+    private boolean canGo(int row, int col, int dir){
+        switch (dir) {
+			case NORTH:
+				return !maze.getRoom(row, col).hasNorthWall();
+			case SOUTH:
+				return !maze.getRoom(row, col).hasSouthWall();
+			case EAST:
+				return !maze.getRoom(row, col).hasEastWall();
+			case WEST:
+				return !maze.getRoom(row, col).hasWestWall();
+		}
+
+		return false;
+
+    }
+
+    public Integer solve(int row, int col){
+        Coord coord = queue.poll();
+        int steps = 1;
+        while(coord != null){
+            if(coord.row == row && coord.col == col){
+                while(true){
+                    maze.getRoom(coord.row,coord.col).onPath = true;
+                    if(coord.parent == null){
+                        return steps;
+                    }
+                    steps += 1;
+                    coord = coord.parent;
+                }
+            }
+            for(int i = 0;i < 4;i++){
+                if(canGo(coord.row,coord.col,i)){
+                    int[] delta = DELTAS[i];
+                    Coord target = new Coord(coord.row + delta[0], coord.col + delta[1], coord);
+                    queue.add(target);
+                }
+            }
+            coord = queue.poll(); 
+            
+        }
+        return null;
+    } 
+
+	@Override
+	public Integer numReachable(int k) throws Exception {
+		// TODO: Find number of reachable rooms.
+		return 0;
+	}
+
+	public static void main(String[] args) {
+		// Do remember to remove any references to ImprovedMazePrinter before submitting
+		// your code!
+		try {
+			Maze maze = Maze.readMaze("maze-sample.txt");
+			IMazeSolver solver = new MazeSolver();
+			solver.initialize(maze);
+
+			System.out.println(solver.pathSearch(0, 0, 2, 3));
+			MazePrinter.printMaze(maze);
+
+			for (int i = 0; i <= 9; ++i) {
+				System.out.println("Steps " + i + " Rooms: " + solver.numReachable(i));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+    class Coord{
+        public int row, col;
+        public Coord parent;
+        public Coord(int row, int col, Coord parent){
+            this.row = row;
+            this.col = col;
+            this.parent = parent;
+        }
+    }
+}
