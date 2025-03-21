@@ -10,9 +10,11 @@ public class MazeSolver implements IMazeSolver {
 	};
 
     private Maze maze;
+    private boolean[][] visited;
     private LinkedList<Coord> queue;
     private Coord end;
-	public MazeSolver() {
+	private Coord recentStart;
+    public MazeSolver() {
         this.maze = null;    
         this.queue = new LinkedList<>();
     }
@@ -21,6 +23,7 @@ public class MazeSolver implements IMazeSolver {
 	public void initialize(Maze maze) {
 		// TODO: Initialize the solver.
 	    this.maze = maze;
+        this.visited = new boolean[maze.getRows()][maze.getColumns()];
     }
 
 	@Override
@@ -33,16 +36,21 @@ public class MazeSolver implements IMazeSolver {
 				endRow < 0 || endCol < 0 || endRow >= maze.getRows() || endCol >= maze.getColumns()) {
 			throw new IllegalArgumentException("Invalid start/end coordinate");
 		}
-        
+        reset();
+        queue.clear();
+        recentStart = new Coord(startRow, startCol);
+        queue.add(recentStart);
+		return solve(endRow,endCol);
+	}
+
+    private void reset(){
         for(int i = 0; i < maze.getRows(); i++){
             for(int j = 0; j< maze.getColumns(); j++){
                 maze.getRoom(i, j).onPath = false;
+                visited[i][j] = false;
             }
         }
-        queue.clear();
-        queue.add(new Coord(startRow,startCol,null));
-		return solve(endRow,endCol);
-	}
+    }
 
     private boolean canGo(int row, int col, int dir){
         switch (dir) {
@@ -64,6 +72,7 @@ public class MazeSolver implements IMazeSolver {
         Coord coord = queue.poll();
         int steps = 1;
         while(coord != null){
+            visited[coord.row][coord.col] = true;
             if(coord.row == row && coord.col == col){
                 while(true){
                     maze.getRoom(coord.row,coord.col).onPath = true;
@@ -78,7 +87,9 @@ public class MazeSolver implements IMazeSolver {
                 if(canGo(coord.row,coord.col,i)){
                     int[] delta = DELTAS[i];
                     Coord target = new Coord(coord.row + delta[0], coord.col + delta[1], coord);
-                    queue.add(target);
+                    if(!visited[target.row][target.col]){
+                        queue.add(target);
+                    }
                 }
             }
             coord = queue.poll(); 
@@ -89,9 +100,33 @@ public class MazeSolver implements IMazeSolver {
 
 	@Override
 	public Integer numReachable(int k) throws Exception {
-		// TODO: Find number of reachable rooms.
-		return 0;
-	}
+	    int res = 0;
+        queue.clear();
+        reset();
+        Coord coord = recentStart;
+        while(coord != null){
+            visited[coord.row][coord.col] = true;
+            if(coord.steps == k){
+                res++;
+            }
+            else{
+                for(int i = 0;i < 4; i++){
+                    if(canGo(coord.row,coord.col,i)){
+                        int[] delta = DELTAS[i];
+                        Coord target = new Coord(coord.row + delta[0], coord.col + delta[1], coord);
+                        if(!visited[target.row][target.col]){
+                            queue.add(target);
+                        }
+                    }
+                }
+            }
+            coord = queue.poll();
+
+        } 
+        return res;
+
+    
+    }
 
 	public static void main(String[] args) {
 		// Do remember to remove any references to ImprovedMazePrinter before submitting
@@ -113,12 +148,21 @@ public class MazeSolver implements IMazeSolver {
 	}
 
     class Coord{
-        public int row, col;
+        public int row, col, steps;
         public Coord parent;
+
+        public Coord(int row, int col){
+            this.row = row;
+            this.col = col;
+            this.parent = null;
+            this.steps = 0;
+        }
+
         public Coord(int row, int col, Coord parent){
             this.row = row;
             this.col = col;
             this.parent = parent;
+            this.steps = parent.steps + 1;
         }
     }
 }
