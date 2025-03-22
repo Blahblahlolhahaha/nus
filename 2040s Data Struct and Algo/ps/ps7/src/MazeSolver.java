@@ -70,7 +70,7 @@ public class MazeSolver implements IMazeSolver {
 
     public Integer solve(int row, int col){
         Coord coord = queue.poll();
-        int steps = 1;
+        int steps = 0;
         while(coord != null){
             visited[coord.row][coord.col] = true;
             if(coord.row == row && coord.col == col){
@@ -100,13 +100,13 @@ public class MazeSolver implements IMazeSolver {
 
 	@Override
 	public Integer numReachable(int k) throws Exception {
+        System.out.println(maze.getRows() * maze.getColumns());
 	    int res = 0;
         queue.clear();
         reset();
         Coord coord = recentStart;
         while(coord != null){
-            visited[coord.row][coord.col] = true;
-            if(coord.steps == k){
+            if(coord.steps == k && !visited[coord.row][coord.col]){
                 res++;
             }
             else{
@@ -120,6 +120,7 @@ public class MazeSolver implements IMazeSolver {
                     }
                 }
             }
+            visited[coord.row][coord.col] = true;
             coord = queue.poll();
 
         } 
@@ -132,7 +133,7 @@ public class MazeSolver implements IMazeSolver {
 		// Do remember to remove any references to ImprovedMazePrinter before submitting
 		// your code!
 		try {
-			Maze maze = Maze.readMaze("maze-sample.txt");
+			Maze maze = Maze.readMaze("maze-empty.txt");
 			IMazeSolver solver = new MazeSolver();
 			solver.initialize(maze);
 
@@ -164,5 +165,24 @@ public class MazeSolver implements IMazeSolver {
             this.parent = parent;
             this.steps = parent.steps + 1;
         }
+
+        @Override
+        public String toString(){
+            return String.format("(%d,%d)", row,col);
+        }
+
+        @Override
+        public boolean equals(Object o){
+            if(o instanceof Coord){
+                Coord coord = (Coord) o;
+                return equals(coord);
+            }
+            return false;
+        }
+
+        public boolean equals(Coord coord){
+            return this.row == coord.row && this.col == coord.col;
+        }
+
     }
 }
