@@ -1,6 +1,9 @@
 import java.util.zip.CRC32;
 import java.util.stream.Stream;
 import java.util.Arrays;
+import java.util.List;
+import java.util.ArrayList;
+import java.lang.StringBuilder;
 import java.lang.Exception;
 import java.lang.Thread;
 import java.lang.Runnable;
@@ -13,7 +16,6 @@ import java.net.InetSocketAddress;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
 class Alice{
     public static void main(String[] args) throws SocketException,UnknownHostException{
         if(args.length == 0){
@@ -37,7 +39,7 @@ class Alice{
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         Stream<String> lines = br.lines();
         WindowHandler handler = new WindowHandler(sockAddr);
-        handler.loadString(lines);
+        handler.loadString(lines.toList());
         handler.send();
     }
 
@@ -46,38 +48,65 @@ class Alice{
 class WindowHandler{
     private static final int TIMEOUT = 30;
     public static final int WINDOW = 32;
-    private volatile static Packet[] buffer;
+    private volatile static ArrayList<Packet> buffer;
     private volatile static int acked = 0;
     private volatile static int loc = -1;
     private InetSocketAddress sockAddr; 
     public  WindowHandler(InetSocketAddress sockAddr){
         this.sockAddr = sockAddr; 
+        buffer = new ArrayList<>();
     }
 
-    public void loadString(Stream<String> lines){
-        buffer = lines.flatMap(x -> Packet.getPackets(x)).toArray(Packet[]::new);
+    public void loadString(List<String> lines){
+        StringBuilder builder = new StringBuilder();
+        for(String string : lines){
+            string += "\n";
+            if(builder.length() + string.length() > 58 && !builder.isEmpty()){
+                buffer.addAll(Packet.getPackets(builder.toString()));
+                builder.setLength(0);
+            }
+            builder.append(string);
+            
+        }
+        if(!builder.isEmpty()){
+            buffer.addAll(Packet.getPackets(builder.toString()));
+        }
+        for(int i = 0;i < buffer.size(); i++){
+            if(buffer.get(i) == null){
+            System.out.println(i);
+            }
+        }
     }
 
     public void send(){
         int i = 0;
         SendThread[] threads = new SendThread[WINDOW];
-        while(i < buffer.length){
+        System.out.println(buffer.size());
+        boolean send = true;
+        while(send){
+            send = false;
             for(int x = 0;x < WINDOW; x++){
-                if(i + x == buffer.length){
+                if(i + x == buffer.size()){
                     break;
                 }
-                if(!buffer[x + i].acked){
+                Packet packet = buffer.get(x + i);
+                if((packet != null  && !packet.acked)){
+                    send = true;
                     threads[x] = new SendThread(x + i);
                     threads[x].start();
                 }
             }
             for(int x = 0; x < WINDOW; x++){
-                if(i + x == buffer.length){
+                if(i + x == buffer.size()){
                     break;
                 }
                 try{
-                    threads[x].join();
-                    if(x + i - loc == 1 && buffer[x + i].acked){
+                    Thread thread = threads[x];
+                    if(thread != null){
+                        threads[x].join();
+                    }
+                    Packet packet = buffer.get(x + i);
+                    if(x + i - loc == 1 && packet != null &&packet.acked){
                         loc++;
                     }
                 }catch(InterruptedException e){
@@ -86,7 +115,6 @@ class WindowHandler{
             }
             i = loc + 1;
         }
-    
     }
 
     public boolean sendPacket(InetSocketAddress sockAddr, Packet packet) throws IOException{
@@ -125,9 +153,9 @@ class WindowHandler{
         public void run() {
             try{
                 synchronized(buffer){
-                    if(sendPacket(sockAddr,buffer[i])){
+                    if(sendPacket(sockAddr,buffer.get(i))){
                         //System.out.println("acked!");
-                        buffer[i].acked = true;
+                        buffer.get(i).acked = true;
                     }
                 }
             }catch(IOException e){
@@ -166,9 +194,9 @@ class Packet{
         this.checksum = checksum;
     }
 
-    public static Stream<Packet> getPackets(String data){
+    public static List<Packet> getPackets(String data){
         byte[] bytes = data.getBytes();
-        Packet[] packets = new Packet[bytes.length/maxData + 1];
+        Packet[] packets = new Packet[(int)Math.ceil((double)bytes.length/maxData)];
         int remaining = bytes.length;
         int index = 0;
         while(remaining > 0){
@@ -187,7 +215,7 @@ class Packet{
             currSeq = (byte)((currSeq + (byte)1) % 256);
             index++;
         }
-        return Arrays.asList(packets).stream();
+        return Arrays.asList(packets);
     
     }
 

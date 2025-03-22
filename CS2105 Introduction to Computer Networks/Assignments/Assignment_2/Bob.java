@@ -123,9 +123,6 @@ class Ring{
 
     public void printBuf(byte[] buf){
         String data = new String(buf,6,buf.length - 6);
-        if(buf[1] == 1){
-            data += "\n";
-        }
         System.out.printf("%s",data);
     }
 }
