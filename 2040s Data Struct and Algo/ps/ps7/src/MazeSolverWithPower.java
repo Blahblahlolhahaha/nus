@@ -71,7 +71,8 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 			for(int i = 0; i < 4; i++){		
 				int[] delta = DELTAS[i];
 				Coord target = new Coord(coord.row + delta[0], coord.col + delta[1], coord.superpower,coord);	
-				if((target.row >= 0 && target.row < maze.getRows() && target.col >= 0 && target.col < maze.getColumns())){
+                
+                if(((coord.parent == null || (!target.equals(coord.parent))) && target.row >= 0 && target.row < maze.getRows() && target.col >= 0 && target.col < maze.getColumns())){
 					if(canGo(coord.row, coord.col, i)){
 						if(!tracker[target.row][target.col][target.superpower]){
 							queue.add(target);
@@ -105,11 +106,12 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 			if(coord.steps == k && !tracker[coord.row][coord.col][this.superpower+1]){
 				num++;
 			}
-			else{
+			else if(coord.steps < k){
 				for(int i = 0; i < 4; i++){		
 					int[] delta = DELTAS[i];
 					Coord target = new Coord(coord.row + delta[0], coord.col + delta[1], coord.superpower,coord);	
-					if((target.row >= 0 && target.row < maze.getRows() && target.col >= 0 && target.col < maze.getColumns())){
+					
+                    if(((coord.parent == null || (!target.equals(coord.parent))) && target.row >= 0 && target.row < maze.getRows() && target.col >= 0 && target.col < maze.getColumns())){
 						if(canGo(coord.row, coord.col, i)){
 							if(!tracker[target.row][target.col][target.superpower]){
 								queue.add(target);
@@ -144,7 +146,7 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 			Maze maze = Maze.readMaze("maze-dense.txt");
 			IMazeSolverWithPower solver = new MazeSolverWithPower();
 			solver.initialize(maze);
-			System.out.println(solver.pathSearch(0,0, 03, 3, 6));
+			System.out.println(solver.pathSearch(0,0, 03, 3, 20));
 			MazePrinter.printMaze(maze);
 
 			for (int i = 0; i <= 9; ++i) {
@@ -174,6 +176,20 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 			this.parent = parent;
 			this.steps  = parent.steps + 1;
 		}
+
+        @Override
+        public boolean equals(Object o){
+            if(o instanceof Coord){
+                Coord coord = (Coord) o;
+                return this.row == coord.row && this.col == coord.col;
+            }
+            return false;
+        }
+
+        @Override
+        public String toString(){
+            return "x: " + col + "\ny: " + row;
+        }
 
 	}
 }
