@@ -79,14 +79,14 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 						}
 					}
 					else if(coord.superpower > 0){
-						if(!tracker[target.row][target.col][target.superpower]){
+						if(!tracker[target.row][target.col][target.superpower-1]){
 							target.superpower -= 1;
 							queue.add(target);
 						}
 					}
 				}	
 			}
-			tracker[coord.row][coord.col][superpower] = true;
+			tracker[coord.row][coord.col][coord.superpower] = true;
 		}
 		return null;
 	}
