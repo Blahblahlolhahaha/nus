@@ -23,6 +23,7 @@ public class MazeSolver implements IMazeSolver {
 	private Maze maze;
 	PriorityQueue<Coord> queue;
 	HashMap<Coord, Integer> map;
+	boolean[][] visited;
 	public MazeSolver() {
 		this.queue =  new PriorityQueue<>();
 		this.map = new HashMap<>();
@@ -37,24 +38,17 @@ public class MazeSolver implements IMazeSolver {
 	public void reset(){
 		queue.clear();
 		map.clear();
+		this.visited = new boolean[maze.getRows()][maze.getColumns()];
 	}
 
 	@Override
 	public Integer pathSearch(int startRow, int startCol, int endRow, int endCol) throws Exception {
-		if (maze == null) {
-			return null;
-		}
-
-		if (startRow < 0 || startCol < 0 || startRow >= maze.getRows() || startCol >= maze.getColumns() ||
-				endRow < 0 || endCol < 0 || endRow >= maze.getRows() || endCol >= maze.getColumns()) {
-			return null;
-		}
-
 		reset();
 		Coord coord = new Coord(startRow, startCol, 0);
 		Coord end = new Coord(endRow, endCol, 0);
 		map.put(coord, 0);
 		while(coord != null){
+			visited[coord.row][coord.col] = true;
 			if(coord.equals(end)){
 				return coord.fear;
 			}
@@ -67,16 +61,25 @@ public class MazeSolver implements IMazeSolver {
 					}
 					int row = coord.row + delta[0];
 					int col = coord.col + delta[1];
-					Coord target = new Coord(row, col, coord.fear + fear);
-					if(map.containsKey(target)){
-						int ogFear = map.get(target);
-						if(ogFear <= target.fear){
-							continue;
-						}  
-						
+					if(!visited[row][col]){
+						Coord target = new Coord(row, col, coord.fear + fear);
+						if(queue.containsKey(target)){
+							queue.decreaseKey(target, target.fear);
+						}
+						else{
+							queue.add(target);
+						}
 					}
-					map.put(target, target.fear);
-					queue.add(target);
+					
+					// if(map.containsKey(target)){
+					// 	int ogFear = map.get(target);
+					// 	if(ogFear <= target.fear){
+					// 		continue;
+					// 	}  
+						
+					// }
+					// map.put(target, target.fear);
+					
 				}
 				// Coord target = new Coord(endRow, endCol, i)
 			}
@@ -106,8 +109,8 @@ public class MazeSolver implements IMazeSolver {
 			// 	for(int j = 0; j < maze.getColumns(); j++){
 			// 		for(int k = 0; k < maze.getRows(); k++){
 			// 			for(int l = 0; l < maze.getColumns(); l++){
-			// 				if(solver.pathSearch(i, j, k, l) != 0){
-			// 					System.out.printf("%d%d%d%d",i,j,k,l);
+			// 				if(solver.pathSearch(i, j, k, l) != Math.abs(i - k) + Math.abs(j - l)){
+			// 					System.out.printf("%d%d%d%d\n",i,j,k,l);
 			// 				}
 			// 			}
 			// 		}
@@ -146,7 +149,116 @@ public class MazeSolver implements IMazeSolver {
 
 		@Override
 		public int compareTo(Coord o) {
-			return this.fear - o.fear;
+			if(o != null){
+				return this.fear - o.fear;
+			}
+			return -1;
 		}
+	}
+
+	public class PriorityQueue<T extends Comparable<T>>{
+		T[] arr;
+		HashMap<T,Integer> indexMap;
+		public int size;
+		
+		public PriorityQueue(){
+			clear();
+		}
+
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		public void clear(){
+			Comparable[] obj = new Comparable[8];
+			arr = (T[]) obj;
+			indexMap = new HashMap<>();
+			size = 0;
+		}
+
+		public boolean containsKey(T obj){
+			return indexMap.containsKey(obj);
+		}
+
+		public void add(T obj){
+			size += 1;
+			arr[size] = obj;
+			int curr = size;
+			bubbleUp(curr);
+			if(size >= arr.length / 2){
+				resize(arr.length * 2);
+			}
+		}
+
+		public T poll(){
+			if(size >= 1){
+				T obj = arr[1];
+				T last = arr[size];
+				arr[1] = last;
+				indexMap.put(last, 1);
+				int curr = 1;
+				bubbleDown(curr);
+				indexMap.remove(obj);
+				arr[size] = null;
+				size -= 1;
+				return obj;
+			}
+			if(size <= arr.length/4){
+				resize(arr.length/2);
+			}
+			return null;
+		}
+
+		public void decreaseKey(T obj, int key){
+			int curr = indexMap.get(obj);
+			T og = arr[curr];
+			if(og.compareTo(obj) > 0){
+				arr[curr] = obj;
+				bubbleUp(curr);
+			}
+		}
+
+		private void bubbleUp(int curr){
+			T obj = arr[curr];
+			while(curr > 1){
+				int old = curr;
+				curr /= 2;
+				T parent = arr[curr];
+				if(parent.compareTo(obj) > 0){
+					swap(old,curr);
+				}
+			}
+		}
+
+		private void bubbleDown(int curr){
+			T last = arr[curr]; 
+			while(last != null && (last.compareTo(arr[curr * 2]) > 0 
+				|| last.compareTo(arr[curr * 2 + 1]) > 0)){
+					if(arr[curr * 2].compareTo(arr[curr * 2 + 1]) < 0){
+						swap(curr,curr * 2);
+						curr = curr * 2;
+					}
+					else{
+						swap(curr,curr * 2 + 1);
+						curr = curr * 2 + 1;
+					}
+			}
+		}
+
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		private void resize(int length){
+			Comparable[] obj = new Comparable[length];
+			for(int i = 1; i <= size; i++){
+				obj[i] = arr[i];
+			}
+			arr = (T[]) obj;
+		}
+
+		private void swap(int old, int curr){
+			T swapped = arr[curr];
+			T swapped2 = arr[old];
+			arr[old] = swapped;
+			arr[curr] = swapped2;
+			indexMap.put(swapped2, curr);
+			indexMap.put(swapped, old);
+		}
+
 	}
 }
