@@ -84,7 +84,7 @@ class Bob{
 }
 
 class Ring{
-    public static int WINDOW = 32;
+    public static int WINDOW = 8;
     private byte[][] ring = new byte[WINDOW][];
     private int expSeq = 0;
     private int head = 0;

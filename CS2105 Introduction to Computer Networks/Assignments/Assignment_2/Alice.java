@@ -47,7 +47,7 @@ class Alice{
 
 class WindowHandler{
     private static final int TIMEOUT = 30;
-    public static final int WINDOW = 32;
+    public static final int WINDOW = 8;
     private volatile static ArrayList<Packet> buffer;
     private volatile static int acked = 0;
     private volatile static int loc = -1;
