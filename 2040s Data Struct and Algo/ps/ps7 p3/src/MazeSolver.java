@@ -70,18 +70,7 @@ public class MazeSolver implements IMazeSolver {
 							queue.add(target);
 						}
 					}
-					
-					// if(map.containsKey(target)){
-					// 	int ogFear = map.get(target);
-					// 	if(ogFear <= target.fear){
-					// 		continue;
-					// 	}  
-						
-					// }
-					// map.put(target, target.fear);
-					
 				}
-				// Coord target = new Coord(endRow, endCol, i)
 			}
 			coord = queue.poll();
 		}
@@ -90,8 +79,43 @@ public class MazeSolver implements IMazeSolver {
 
 	@Override
 	public Integer bonusSearch(int startRow, int startCol, int endRow, int endCol) throws Exception {
-		// TODO: Find minimum fear level given new rules.
-		return null;
+		reset();
+		Coord coord = new Coord(startRow, startCol, 0);
+		Coord end = new Coord(endRow, endCol, 0);
+		map.put(coord, 0);
+		Integer min = null;
+		while(coord != null){
+			visited[coord.row][coord.col] = true;
+			if(coord.equals(end)){
+				return coord.fear;
+			}
+			for(int i = 0; i < 4; i++){
+				int[] delta = DELTAS[i];
+				int fear = WALL_FUNCTIONS.get(i).apply(maze.getRoom(coord.row, coord.col));
+				if(fear != TRUE_WALL){
+					boolean empty = false;
+					if(fear == EMPTY_SPACE){
+						empty = true;
+					}
+					int row = coord.row + delta[0];
+					int col = coord.col + delta[1];
+					if(!visited[row][col] || (row == endRow && col == endCol)){
+						if(coord.fear > fear){
+							fear = coord.fear;
+						}
+						Coord target = new Coord(row, col, fear + (empty? 1 : 0), coord);
+						if(queue.containsKey(target)){
+							queue.decreaseKey(target, target.fear);
+						}
+						else{
+							queue.add(target);
+						}
+					}
+				}
+			}
+			coord = queue.poll();
+		}
+		return min;
 	}
 
 	@Override
@@ -102,21 +126,21 @@ public class MazeSolver implements IMazeSolver {
 
 	public static void main(String[] args) {
 		try {
-			Maze maze = Maze.readMaze("haunted-maze-sample.txt");
+			Maze maze = Maze.readMaze("maze-empty.txt");
 			IMazeSolver solver = new MazeSolver();
 			solver.initialize(maze);
-			// for(int i = 0; i < maze.getRows(); i++){
-			// 	for(int j = 0; j < maze.getColumns(); j++){
-			// 		for(int k = 0; k < maze.getRows(); k++){
-			// 			for(int l = 0; l < maze.getColumns(); l++){
-			// 				if(solver.pathSearch(i, j, k, l) != Math.abs(i - k) + Math.abs(j - l)){
-			// 					System.out.printf("%d%d%d%d\n",i,j,k,l);
-			// 				}
-			// 			}
-			// 		}
-			// 	}
-			// }
-			System.out.println(solver.pathSearch(0, 0, 0, 4));
+			for(int i = 0; i < maze.getRows(); i++){
+				for(int j = 0; j < maze.getColumns(); j++){
+					for(int k = 0; k < maze.getRows(); k++){
+						for(int l = 0; l < maze.getColumns(); l++){
+							if(solver.bonusSearch(i, j, k, l) != Math.abs(i - k) + Math.abs(j - l)){
+								System.out.printf("%d%d%d%d\n",i,j,k,l);
+							}
+						}
+					}
+				}
+			}
+			System.out.println(solver.bonusSearch(0, 0, 0, 3));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -124,12 +148,20 @@ public class MazeSolver implements IMazeSolver {
 
 	public class Coord implements Comparable<Coord>{
 		public int row, col;
+		public Coord parent;
 		public int fear;
 
 		public Coord(int row, int col, int fear){
 			this.row = row;
 			this.col = col;
 			this.fear = fear;
+		}
+
+		public Coord(int row, int col, int fear, Coord parent){
+			this.row = row;
+			this.col = col;
+			this.fear = fear;
+			this.parent = parent;
 		}
 
 		@Override
