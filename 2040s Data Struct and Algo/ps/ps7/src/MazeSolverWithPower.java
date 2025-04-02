@@ -1,3 +1,4 @@
+import java.util.HashMap;
 import java.util.LinkedList;
 
 public class MazeSolverWithPower implements IMazeSolverWithPower {
@@ -11,7 +12,8 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 
 	public Maze maze;
 	public LinkedList<Coord> queue;
-// 	public boolean[][][] visited;
+ 	public boolean[][] visited;
+	public HashMap<Integer,Integer> reachable;
 	public boolean[][][] tracker;
 	public Coord recent;
 	public int superpower;
@@ -23,11 +25,12 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 	@Override
 	public void initialize(Maze maze) {
 		this.maze = maze;
-		
 	}
 
 	private void reset(){
 		this.tracker = new boolean[maze.getRows()][maze.getColumns()][this.superpower + 2];
+		this.visited = new boolean[maze.getRows()][maze.getColumns()];
+		this.reachable = new HashMap<>();
         for(int i = 0; i < maze.getRows(); i++){
             for(int j = 0; j< maze.getColumns(); j++){
                 maze.getRoom(i, j).onPath = false;
@@ -62,16 +65,21 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 		queue.clear();
 		recent = new Coord(startRow,startCol,this.superpower);
 		queue.add(recent);
+		Integer ans = null;
+		Coord ansCoord = null;
 		while(!queue.isEmpty()){
 			Coord coord = queue.poll();
-			if(coord.row == endRow && coord.col == endCol){
-				setPath(coord);
-				return coord.steps;
+			if(coord.row == endRow && coord.col == endCol && ans == null){
+				ansCoord = coord;
+				ans = coord.steps;
+			}
+			if(!visited[coord.row][coord.col]){
+				visited[coord.row][coord.col] = true;
+				reachable.put(coord.steps, reachable.getOrDefault(coord.steps, 0) + 1);
 			}
 			for(int i = 0; i < 4; i++){		
 				int[] delta = DELTAS[i];
 				Coord target = new Coord(coord.row + delta[0], coord.col + delta[1], coord.superpower,coord);	
-                
                 if(((coord.parent == null || (!target.equals(coord.parent))) && target.row >= 0 && target.row < maze.getRows() && target.col >= 0 && target.col < maze.getColumns())){
 					if(canGo(coord.row, coord.col, i)){
 						if(!tracker[target.row][target.col][target.superpower]){
@@ -88,50 +96,54 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 			}
 			tracker[coord.row][coord.col][coord.superpower] = true;
 		}
-		return null;
+		if(ans != null){
+			setPath(ansCoord);
+		}
+		return ans;
 	}
 	
 
 	@Override
 	public Integer numReachable(int k) throws Exception {
-		if(maze == null || recent == null){
-			return 0;
-		}
-		reset();
-		queue.clear();
-		int num = 0;
-		queue.add(recent);
-		while(!queue.isEmpty()){
-			Coord coord = queue.poll();
-			if(coord.steps == k && !tracker[coord.row][coord.col][this.superpower+1]){
-				num++;
-			}
-			else if(coord.steps < k){
-				for(int i = 0; i < 4; i++){		
-					int[] delta = DELTAS[i];
-					Coord target = new Coord(coord.row + delta[0], coord.col + delta[1], coord.superpower,coord);	
+		// if(maze == null || recent == null){
+		// 	return 0;
+		// }
+		// reset();
+		// queue.clear();
+		// int num = 0;
+		// queue.add(recent);
+		// while(!queue.isEmpty()){
+		// 	Coord coord = queue.poll();
+		// 	if(coord.steps == k && !tracker[coord.row][coord.col][this.superpower+1]){
+		// 		num++;
+		// 	}
+		// 	else if(coord.steps < k){
+		// 		for(int i = 0; i < 4; i++){		
+		// 			int[] delta = DELTAS[i];
+		// 			Coord target = new Coord(coord.row + delta[0], coord.col + delta[1], coord.superpower,coord);	
 					
-                    if(((coord.parent == null || (!target.equals(coord.parent))) && target.row >= 0 && target.row < maze.getRows() && target.col >= 0 && target.col < maze.getColumns())){
-						if(canGo(coord.row, coord.col, i)){
-							if(!tracker[target.row][target.col][target.superpower]){
-								queue.add(target);
-							}
-						}
-						else if(coord.superpower > 0){
-							if(!tracker[target.row][target.col][target.superpower - 1]){
-								target.superpower -= 1;
-								queue.add(target);
-							}
+        //             if(((coord.parent == null || (!target.equals(coord.parent))) && target.row >= 0 && target.row < maze.getRows() && target.col >= 0 && target.col < maze.getColumns())){
+		// 				if(canGo(coord.row, coord.col, i)){
+		// 					if(!tracker[target.row][target.col][target.superpower]){
+		// 						queue.add(target);
+		// 					}
+		// 				}
+		// 				else if(coord.superpower > 0){
+		// 					if(!tracker[target.row][target.col][target.superpower - 1]){
+		// 						target.superpower -= 1;
+		// 						queue.add(target);
+		// 					}
 							
-						}
-					}	
+		// 				}
+		// 			}	
 					
-				}
-			}
-			tracker[coord.row][coord.col][coord.superpower] = true;
-		    tracker[coord.row][coord.col][this.superpower+1]= true;
-        }
-		return num;
+		// 		}
+		// 	}
+		// 	tracker[coord.row][coord.col][coord.superpower] = true;
+		//     tracker[coord.row][coord.col][this.superpower+1]= true;
+        // }
+		// return num;
+		return reachable.getOrDefault(k, 0);
 	}
 
 	@Override
@@ -146,7 +158,7 @@ public class MazeSolverWithPower implements IMazeSolverWithPower {
 			Maze maze = Maze.readMaze("maze-dense.txt");
 			IMazeSolverWithPower solver = new MazeSolverWithPower();
 			solver.initialize(maze);
-			System.out.println(solver.pathSearch(0,0, 03, 3, 20));
+			System.out.println(solver.pathSearch(0,0, 3, 3, 2 ));
 			MazePrinter.printMaze(maze);
 
 			for (int i = 0; i <= 9; ++i) {
