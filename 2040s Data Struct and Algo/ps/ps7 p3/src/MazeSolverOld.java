@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.function.Function;
 
-public class MazeSolver implements IMazeSolver {
+public class MazeSolverOld implements IMazeSolver {
 	private static final int TRUE_WALL = Integer.MAX_VALUE;
 	private static final int EMPTY_SPACE = 0;
 	private static final List<Function<Room, Integer>> WALL_FUNCTIONS = Arrays.asList(
@@ -24,8 +24,7 @@ public class MazeSolver implements IMazeSolver {
 	PriorityQueue<Coord> queue;
 	HashMap<Coord, Integer> map;
 	boolean[][] visited;
-	Coord special;
-	public MazeSolver() {
+	public MazeSolverOld() {
 		this.queue =  new PriorityQueue<>();
 		this.map = new HashMap<>();
 		// TODO: Initialize variables.
@@ -46,9 +45,42 @@ public class MazeSolver implements IMazeSolver {
 	public Integer pathSearch(int startRow, int startCol, int endRow, int endCol) throws Exception {
 		reset();
 		Coord coord = new Coord(startRow, startCol, 0);
-		if(coord.equals(special)){
-			coord.fear = -1;
+		Coord end = new Coord(endRow, endCol, 0);
+		map.put(coord, 0);
+		while(coord != null){
+			visited[coord.row][coord.col] = true;
+			if(coord.equals(end)){
+				return coord.fear;
+			}
+			for(int i = 0; i < 4; i++){
+				int[] delta = DELTAS[i];
+				int fear = WALL_FUNCTIONS.get(i).apply(maze.getRoom(coord.row, coord.col));
+				if(fear != TRUE_WALL){
+					if(fear == EMPTY_SPACE){
+						fear = 1;
+					}
+					int row = coord.row + delta[0];
+					int col = coord.col + delta[1];
+					if(!visited[row][col]){
+						Coord target = new Coord(row, col, coord.fear + fear);
+						if(queue.containsKey(target)){
+							queue.decreaseKey(target, target.fear);
+						}
+						else{
+							queue.add(target);
+						}
+					}
+				}
+			}
+			coord = queue.poll();
 		}
+		return null;
+	}
+
+	@Override
+	public Integer bonusSearch(int startRow, int startCol, int endRow, int endCol) throws Exception {
+		reset();
+		Coord coord = new Coord(startRow, startCol, 0);
 		Coord end = new Coord(endRow, endCol, 0);
 		map.put(coord, 0);
 		Integer min = null;
@@ -64,18 +96,14 @@ public class MazeSolver implements IMazeSolver {
 					boolean empty = false;
 					if(fear == EMPTY_SPACE){
 						empty = true;
-						fear = coord.fear;
 					}
 					int row = coord.row + delta[0];
 					int col = coord.col + delta[1];
 					if(!visited[row][col] || (row == endRow && col == endCol)){
-						if(coord.fear > fear && !empty){
+						if(coord.fear > fear){
 							fear = coord.fear;
 						}
 						Coord target = new Coord(row, col, fear + (empty? 1 : 0), coord);
-						if(target.equals(special)){
-							target = new Coord(row, col, -1, coord); 
-						}
 						if(queue.containsKey(target)){
 							queue.decreaseKey(target, target.fear);
 						}
@@ -91,43 +119,28 @@ public class MazeSolver implements IMazeSolver {
 	}
 
 	@Override
-	public Integer bonusSearch(int startRow, int startCol, int endRow, int endCol) throws Exception {
-		return pathSearch(startRow, startCol, endRow, endCol);
-	}
-
-	@Override
 	public Integer bonusSearch(int startRow, int startCol, int endRow, int endCol, int sRow, int sCol) throws Exception {
 		// TODO: Find minimum fear level given new rules and special room.
-		special = new Coord(sRow,sCol,-1);
-		Integer ans = bonusSearch(startRow, startCol, endRow, endCol);
-		Integer alt = bonusSearch(sRow, sCol, endRow, endCol);
-
-		if(ans != null){
-			if(alt == null){
-				return ans;
-			}
-			return Math.min(ans, alt);
-		}
 		return null;
 	}
 
 	public static void main(String[] args) {
 		try {
-			Maze maze = Maze.readMaze("haunted-maze-simple.txt");
+			Maze maze = Maze.readMaze("maze-empty.txt");
 			IMazeSolver solver = new MazeSolver();
 			solver.initialize(maze);
-			// for(int i = 0; i < maze.getRows(); i++){
-			// 	for(int j = 0; j < maze.getColumns(); j++){
-			// 		for(int k = 0; k < maze.getRows(); k++){
-			// 			for(int l = 0; l < maze.getColumns(); l++){
-			// 				if(solver.bonusSearch(i, j, k, l) != Math.abs(i - k) + Math.abs(j - l)){
-			// 					System.out.printf("%d%d%d%d\n",i,j,k,l);
-			// 				}
-			// 			}
-			// 		}
-			// 	}
-			// }
-			System.out.println(solver.bonusSearch(0, 0, 0, 3,0,4));
+			for(int i = 0; i < maze.getRows(); i++){
+				for(int j = 0; j < maze.getColumns(); j++){
+					for(int k = 0; k < maze.getRows(); k++){
+						for(int l = 0; l < maze.getColumns(); l++){
+							if(solver.bonusSearch(i, j, k, l) != Math.abs(i - k) + Math.abs(j - l)){
+								System.out.printf("%d%d%d%d\n",i,j,k,l);
+							}
+						}
+					}
+				}
+			}
+			System.out.println(solver.bonusSearch(0, 0, 0, 3));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
