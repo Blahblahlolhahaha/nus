@@ -82,28 +82,43 @@ public class TSPGraph implements IApproximateTSP {
     public boolean isValidTour(TSPMap map) {
         // Note: this function should with with *any* map, and not just results from TSP().
         // TODO: implement this method
-        boolean visited[] = new boolean[map.getCount()];
+        byte visited[] = new byte[map.getCount()];
         TSPMap.Point start = map.getPoint(0);
         TSPMap.Point node = start;
         int id = 0;
         victoryLap = 0.0;
-        for(int i = 0; i < visited.length; i++){
-           if(visited[id]){
-               System.out.println("sad");
-              return false;
-           }
-           visited[id] = true;
+        int visit= 0;
+        while(visit != visited.length){
+           
+           
+           visited[id] = visited[id] + 1;
+           visit += 1;
+           
+           
            id = node.getLink();
-           if(id == -1){
-               return false;
+           if(id == -1|| (visited[id] == 2)){
+              return false;
            }
            TSPMap.Point next = map.getPoint(id);
            double x = next.getX() - node.getX();
            double y = next.getY() - node.getY();
            victoryLap += Math.sqrt(x * x + y * y);
         }
-        if(id != 0){
-            return false;
+        
+        //if(id != 0){
+          //return false;
+        //}
+        boolean flag = false;
+        for(int i = 0;i< visited.length;i++){
+            if(visited[i] == 0){
+                return false;
+            }
+            if(visited[i] == 2){
+                if(flag){
+                    return false;
+                }
+                flag = true;
+            }
         }
         return true;
     }
