@@ -188,7 +188,7 @@ public class TSPMap {
 		}
 		
 		// Draw the graph
-		redraw();
+		//redraw();
 	}
 	
 	/**

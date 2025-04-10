@@ -30,7 +30,7 @@ public class TSPGraph implements IApproximateTSP {
             if(prev != null && !visited[sale.id]){
                 map.setLink(sale.id, sale.parent.id,false);
                 sale.parent.childs.add(sale);
-                map.redraw();
+//                map.redraw();
             }
             visited[sale.id] = true;
             for(int i = 0; i < count; i++){
@@ -60,54 +60,62 @@ public class TSPGraph implements IApproximateTSP {
         stack.addAll(this.sale.childs);
         ArrayList<SasaLele> leaves = new ArrayList<>();
         leaves.add(this.sale);
+        SasaLele prevLeaf = null;
         while(!stack.empty()){
             SasaLele sale = stack.pop();
+            if(prevLeaf != null){
+                map.setLink(sale.id,prevLeaf.id,false);
+                prevLeaf = null;    
+            }
             if(sale.childs.isEmpty()){
-                leaves.add(sale);
+                prevLeaf = sale;
             }
-            else{
-                stack.addAll(sale.childs);
-
-            }
-        }
-        while(leaves.size() >= 2){
-            SasaLele leaf = leaves.getFirst();
-            double weight = Double.MAX_VALUE; 
-            int index = -1;
-            SasaLele res = null;
-            for(int i = 1; i < leaves.size(); i++){
-                SasaLele test = leaves.get(i);
-                double x = test.point.getX() - leaf.point.getX();
-                double y = test.point.getY() - leaf.point.getY();
-                double testWeight = Math.sqrt(x * x + y * y);
-                if(testWeight < weight){
-                    weight = testWeight;
-                    index = i;
-                    res = test;
-                }
-            }
-            if(index != -1 && res != null){
-                map.setLink(leaf.id, res.id);
-                leaves.remove(index);
-                leaves.removeFirst();
-                
+            if(stack.empty()){
+                map.setLink(this.sale.id,sale.id,false);
             }
         }
         // TODO: implement the rest of this method.
     }
 
+    public double victoryLap = 0.0;
     @Override
     public boolean isValidTour(TSPMap map) {
         // Note: this function should with with *any* map, and not just results from TSP().
         // TODO: implement this method
-        return false;
+        boolean visited[] = new boolean[map.getCount()];
+        TSPMap.Point start = map.getPoint(0);
+        TSPMap.Point node = start;
+        int id = 0;
+        victoryLap = 0.0;
+        for(int i = 0; i < visited.length; i++){
+           if(visited[id]){
+               System.out.println("sad");
+              return false;
+           }
+           visited[id] = true;
+           id = node.getLink();
+           if(id == -1){
+               return false;
+           }
+           TSPMap.Point next = map.getPoint(id);
+           double x = next.getX() - node.getX();
+           double y = next.getY() - node.getY();
+           victoryLap += Math.sqrt(x * x + y * y);
+        }
+        if(id != 0){
+            return false;
+        }
+        return true;
     }
 
     @Override
     public double tourDistance(TSPMap map) {
         // Note: this function should with with *any* map, and not just results from TSP().
         // TODO: implement this method
-        return 0;
+        if(isValidTour(map)){
+            return this.victoryLap;
+        }
+        return -1;
     }
 
     public class SasaLele implements Comparable<SasaLele>{
@@ -159,8 +167,8 @@ public class TSPGraph implements IApproximateTSP {
 
         graph.MST(map);
         graph.TSP(map);
-        // System.out.println(graph.isValidTour(map));
-        // System.out.println(graph.tourDistance(map));
+        System.out.println(graph.isValidTour(map));
+        System.out.println(graph.tourDistance(map));
     }
 
     public class PriorityQueue<T extends Comparable<T>>{
