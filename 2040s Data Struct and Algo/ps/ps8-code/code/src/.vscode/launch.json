@@ -1,0 +1,42 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "StdDraw",
+            "request": "launch",
+            "mainClass": "StdDraw",
+            "projectName": "src_e4818899"
+        },
+        {
+            "type": "java",
+            "name": "TSPGraph",
+            "request": "launch",
+            "mainClass": "TSPGraph",
+            "projectName": "src_e4818899"
+        },
+        {
+            "type": "java",
+            "name": "TSPMap",
+            "request": "launch",
+            "mainClass": "TSPMap",
+            "projectName": "src_e4818899"
+        },
+        {
+            "type": "java",
+            "name": "TreeMapPriorityQueue",
+            "request": "launch",
+            "mainClass": "TreeMapPriorityQueue",
+            "projectName": "src_e4818899"
+        }
+    ]
+}
