@@ -32,7 +32,6 @@ public class Main{
         InsertionSort sortyy = new InsertionSort("Insertion", generateArray(30000));
         MergeSort sortyyy = new MergeSort("Merge", generateArray(300000));
         QuickSort sortyyyy = new QuickSort("Quick", generateArray(300000));
-        QuickySort sortyyyyy = new QuickySort("Quick", generateArray(300000));
         SortAlgo[] algos = new SortAlgo[]{sort,sorty,sortyy,sortyyy,sortyyyy,sortyyyyy};
         for(SortAlgo algo: algos){
             time(algo);
