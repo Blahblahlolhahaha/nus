@@ -20,7 +20,7 @@ sd(df$readings)
 new_df = df
 new_df$readings = new_df$readings - 10
 mean(new_df$readings)
-var(new_df$readings)
+var(new_df$readings) #wont change cos the distance from the mean is the same!                                                                                                                      
 
 boxplot(new_df$readings, main="Blood Pressure Readings",ylab="Blood Pressure (mm Hg)")
 unique_bp = data.frame(readings=unique(new_df$readings),prob=numeric(8))
@@ -31,5 +31,5 @@ unique_bp$prob = count[as.character(unique_bp$readings)]/9
 
 unique_bp
 
-hist(unique_bp$readings,l=4, prob=TRUE)
+hist(unique_bp$readings,l=4, prob=TRUE,xlab = "readings")
 
