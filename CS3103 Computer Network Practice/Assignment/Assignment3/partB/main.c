@@ -1,3 +1,5 @@
+// compile instructions: gcc -lcurl main.c -o geotracer
+// run: sudo ./geotracer <url>
 #include <asm-generic/errno.h>
 #include <errno.h>
 #include <netdb.h>
@@ -27,7 +29,7 @@ typedef struct PseudoHeader {
     uint8_t fixed;
     uint8_t  protocol;
     uint16_t tcpLen;
-} PseudoHeader;
+} PseudoHeader; 
 
 struct MemoryStruct{
     char* memory;
@@ -35,6 +37,7 @@ struct MemoryStruct{
 };
 
 uint16_t calculateChecksum(uint16_t* buffer, int len){
+    //calculates the checksum for the checksum field for tcp/ip
     int sum = 0;
     while(len > 1){
         sum += *buffer++;
@@ -50,6 +53,7 @@ uint16_t calculateChecksum(uint16_t* buffer, int len){
 }
 
 size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, void* userp){
+    //function to write http response to a buffer for libcurl
     int realsize = size * nmemb;
     struct MemoryStruct *mem = (struct MemoryStruct *) userp;
     if(mem->memory == NULL){
@@ -63,6 +67,7 @@ size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, void* user
 }
 
 void getGeoLocaton(char* ip, char* res){
+    //gets location info of an ip from ip-api.com via libcurl
     struct MemoryStruct chunk;
     chunk.memory = calloc(512,1);
     chunk.size = 0;
@@ -109,6 +114,7 @@ void getGeoLocaton(char* ip, char* res){
 }
 
 void setPacketDetails(struct iphdr* ip, struct tcphdr* tcp, struct sockaddr_in* source, struct addrinfo* dest, int ttl, int id){
+    //builds packet with the required headers/fields calculating the checksum before sending the packet
     tcp->seq = 0;
     tcp->ack_seq = 0;
     tcp->doff = 5;
@@ -116,6 +122,7 @@ void setPacketDetails(struct iphdr* ip, struct tcphdr* tcp, struct sockaddr_in* 
     tcp->window = htons(5850);
     tcp->check = 0;
     tcp->urg_ptr = 0; 
+    //sets port which will be used to track whether if the incoming TCP packet corresponds to the packet sent out
     tcp->source = htons(id);
     tcp->dest = htons(80);
 
@@ -141,6 +148,7 @@ void setPacketDetails(struct iphdr* ip, struct tcphdr* tcp, struct sockaddr_in* 
         IPPROTO_TCP,
         htons(sizeof(struct tcphdr)),
     };
+   //builds the buffer used to calculate the TCP checksum
    memcpy(sad, &psh, sizeof(PseudoHeader));
    memcpy(sad + sizeof(PseudoHeader), tcp, sizeof(struct tcphdr));
    int sum = 0;
@@ -161,7 +169,7 @@ int main(int argc, char** argv){
         printf("Failed to get info\n");
         exit(0);
     }
-
+    //creates the sockets
     int sendTCPSocket = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
     int recvSocket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     int recvTCPSocket = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
@@ -186,7 +194,7 @@ int main(int argc, char** argv){
     struct iphdr* ip = (struct iphdr*)buf;
     struct tcphdr* tcp = (struct tcphdr*)(buf + sizeof(struct iphdr));
     char hostBuffer[256];
-    sad = gethostname(hostBuffer, 256);
+    sad = gethostname(hostBuffer, 256); 
     if(sad){
         printf("Error getting hostname\n");
         free(buf);
@@ -198,13 +206,14 @@ int main(int argc, char** argv){
     }
     struct sockaddr_in host_addr;
     host_addr.sin_family = AF_INET;
-    host_addr.sin_addr  = *(struct in_addr*)entries->h_addr_list[0];
+    host_addr.sin_addr  = *(struct in_addr*)entries->h_addr_list[0]; //sets source address
     printf("[Destination - %s]\n", inet_ntoa(((struct sockaddr_in*)serv_addr->ai_addr)->sin_addr));
     uint8_t* recvBuf = (uint8_t*) calloc(2048,1);
     if(!recvBuf){
         printf("Error calloc\n");
         exit(0);
     }
+    //max hops is 30 hops
     for(int i = 1; i < 30; i ++){ 
         double min,avg,max,sum;
         min = 9999;
@@ -221,13 +230,14 @@ int main(int argc, char** argv){
             host_addr.sin_addr  = *(struct in_addr*)entries->h_addr_list[0];
             setPacketDetails(ip,tcp, &host_addr, serv_addr,i, 40000+i);
             struct timeval start;
-            gettimeofday(&start, NULL);  
+            gettimeofday(&start, NULL);  //starts timer
             if(sendto(sendTCPSocket, buf, 40, 0, serv_addr->ai_addr, serv_addr->ai_addrlen) < 0 ){        
                 printf("Send error %d\n", errno);
                 exit(0);
             }
             socklen_t len = sizeof(host_addr);
             while(1){
+                //loop that runs until timeout/a response packet is received
                 struct timeval check;
                 gettimeofday(&check, NULL);
                 if(check.tv_sec - start.tv_sec > 5){
@@ -265,7 +275,9 @@ int main(int argc, char** argv){
                 }
                 struct iphdr* incoming = (struct iphdr*) recvBuf;
                 int gdrecv = 0;
-                if(incoming->protocol == IPPROTO_TCP){
+                if(incoming->protocol == IPPROTO_TCP && incoming->saddr == ((struct sockaddr_in*)serv_addr->ai_addr)->sin_addr.s_addr){
+                    
+                    //tcp packet received, checks whether if it is coming from destination + destination port is the same as the source port of the packet that is sent out 
                     struct tcphdr* testTCP = (struct tcphdr*)(recvBuf + sizeof(struct iphdr));
                     if(testTCP->dest == htons(40000 +i) && (testTCP->rst || testTCP->syn)){
                         gdrecv = 1;
@@ -273,6 +285,7 @@ int main(int argc, char** argv){
                     }
                 }
                 if(incoming->protocol == IPPROTO_ICMP){
+                    //icmp packet is recevied, checks whether if the error is correct, together with id + port check in ip and tcp headers
                     struct icmphdr* icmp = (struct icmphdr*)(recvBuf + sizeof(struct iphdr));
                     if(icmp->type == ICMP_TIME_EXCEEDED){
                       struct iphdr* test = (struct iphdr*)(recvBuf + sizeof(struct iphdr) + sizeof(struct icmphdr));  
@@ -294,7 +307,7 @@ int main(int argc, char** argv){
                     }
                     snprintf(ipStr, 16, "%d.%d.%d.%d",gg[0],gg[1],gg[2],gg[3]);
                     struct timeval end;
-                    gettimeofday(&end, NULL);
+                    gettimeofday(&end, NULL);//ends timer
                     double duration = ((double)(end.tv_sec - start.tv_sec)) * 1000 + ((double)(end.tv_usec - start.tv_usec))/1000;
                     sum += duration;
                     success ++;
@@ -321,7 +334,7 @@ int main(int argc, char** argv){
                 printf("An error occured in calloc");
                 exit(0);
             }
-            getGeoLocaton(ipStr, res);
+            getGeoLocaton(ipStr, res); //get ip geo info
             printf("Hop %d: %s (%s) - min/avg/max RTT = %f / %f / %f ms\n", i, ipStr,res ,min,avg,max);
             memset(res, 0, 512);
             free(res);
