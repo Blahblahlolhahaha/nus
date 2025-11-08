@@ -1,4 +1,4 @@
-setwd("/home/sad/Documents/nus/ST1131 Introduction to Statistics and Statistical Computing/assignment")
+setwd("C:/Users/USER/Documents/GitHub/nus/ST1131 Introduction to Statistics and Statistical Computing/assignment")
 par(mfrow = c(2, 2))
 df = read.csv("hdb_2017_2025Feb_sample.csv")
 
@@ -110,6 +110,7 @@ month_month <- sapply(split_month, `[`,2)
 
 for(i in seq(1:nrow(df))){
   df$year[i] = month_year[i][1]
+  df$mon[i] = month_month[i][1]
   df$age[i] = as.integer(month_year[i][1]) - as.integer(df$lease_commence_date[i])
   if (is.na(months[i])){
     df$remaining_lease_num[i] = years[i]
@@ -121,7 +122,7 @@ for(i in seq(1:nrow(df))){
   df$combined_flat_type[i] = paste(df$flat_type[i],df$flat_model[i], sep="-")
   df$block_street[i] = paste(df$block[i],df$street_name[i], sep=" ")
   lease_start = as.integer(df$lease_commence_date[i])
-  yeary = as.integer(df$year[i])
+  yeary = as.numeric(df$year[i])
   df$year_rel[i] = yeary - 2017 
   if(lease_start < 1980){
     df$lease_start[i] = "< 1980"
@@ -136,7 +137,7 @@ for(i in seq(1:nrow(df))){
   } else{
     df$lease_start[i] = "present"
   }
-  if(yeary < 2021){
+  if(yeary < 2020){
     df$pls_fucking_work[i] = "Before Covid"
   } else if(yeary > 2021){
     df$pls_fucking_work[i] = "After Covid"
@@ -227,7 +228,9 @@ plot(
   col=c("yellow","orange","magenta","lightblue","violet"),
   main="Scatter Plot of area of flats against resale price"
 )
-cov(df$floor_area_sqm,df$resale_price)
+
+
+cor(df$floor_area_sqm,df$resale_price)
 
 df$flat_type = as.factor(df$flat_type)
 df$flat_model = as.factor(df$flat_model)
@@ -259,7 +262,9 @@ m12 = lm(formula = resale_price ~ floor_area_sqm + lease_start + age + combined_
 m13 = lm(formula = resale_price ~ floor_area_sqm + mature + lease_start + age + combined_flat_type + remaining_lease_num   + storey_mean + pls_fucking_work + town, data=df)
 m14 = lm(formula = resale_price ~ floor_area_sqm + mature + age + combined_flat_type + remaining_lease_num + pls_fucking_work + compass + storey_mean, data=df)
 m15 = lm(formula = resale_price ~ floor_area_sqm + mature + age + combined_flat_type2 + pls_fucking_work + town + storey_mean, data=df)
-m16 = lm(formula = resale_price ~ floor_area_sqm + mature + age + combined_flat_type2 + pls_fucking_work + town + storey_mean + year_rel, data=df)
+m16 = lm(formula = resale_price ~ floor_area_sqm + town + age + combined_flat_type2 + pls_fucking_work * year_rel + storey_range , data=df)
+
+
 
 
 resi_std = rstandard(m16)
@@ -270,13 +275,27 @@ hist(
   breaks=6,
   xlab = "SR",
   col="lightblue",
-  main = "SR"
+  main = "Distribution of the SR"
 )
-plot(df$resale_price,resi_std)
-plot(df$floor_area_sqm,resi_std)
+plot(
+  df$resale_price,resi_std, 
+  xlab="Resale Price of the Flats",
+  ylab="SR",
+  main="SR against Resale Price"
+)
+abline(h=3, col="red")
+abline(h=-3, col="red")
+plot(
+  df$floor_area_sqm,resi_std,
+  xlab="Floor Area of Flat",
+  ylab="SR",
+  main="SR against Floor Area"
+)
+abline(h=3, col="red")
+abline(h=-3, col="red")
 qqnorm(resi_std)
 qqline(resi_std)
-C = cooks.distance(m15)
+C = cooks.distance(m16)
 which(C>1)
 
 
