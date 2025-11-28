@@ -198,7 +198,7 @@ hist(
   main = "Histogram of Size of HDB Flats"
 )
 
-barplot(table(df$flat_type),col="lightblue")
+barplot(table(df$flat_type),col="lightblue",ylab="Frequency",main="Number of Flats by Type")
 plot(
   df$flat_type_num,
   df$floor_area_sqm, 
