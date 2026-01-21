@@ -65,3 +65,5 @@ cbind(m1, c(7,8))
 m1[1, ] # returns row 1
 m1[1, 3] #returns row 1 col 3
 m1[1, c(1,3)]
+
+
