@@ -1,33 +1,6 @@
 [submodule "CS3103 Computer Network Practice/Assignment/CS3103 Computer Network Practice/Assignment/GIB_A_PLS_TT_3103"]
 	path = CS3103 Computer Network Practice/Assignment/CS3103 Computer Network Practice/Assignment/GIB_A_PLS_TT_3103
-	url = git@github.com:Blahblahlolhahaha/GIB_A_PLS_TT_3103.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex8-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex8-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex8-Blahblahlolhahaha.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex7-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex7-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex7-Blahblahlolhahaha.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex6-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex6-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex6-Blahblahlolhahaha.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex5-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex5-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex5-Blahblahlolhahaha.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex4-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex4-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex4-Blahblahlolhahaha.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex3-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex3-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex3-Blahblahlolhahaha.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex2-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex2-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex2-Blahblahlolhahaha.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex1-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex1-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex1-Blahblahlolhahaha.git
-[submodule "CS2030S Programming Methodlogy/Ex/ex0-Blahblahlolhahaha"]
-	path = CS2030S Programming Methodlogy/Ex/ex0-Blahblahlolhahaha
-	url = git@github.com:nus-cs2030s-2425-s1/ex0-Blahblahlolhahaha.git
+	url = https://github.com/Blahblahlolhahaha/GIB_A_PLS_TT_3103.git
 [submodule "CS2103_Software_Engineering/ip"]
 	path = CS2103_Software_Engineering/ip
 	url = https://github.com/Blahblahlolhahaha/ip.git
