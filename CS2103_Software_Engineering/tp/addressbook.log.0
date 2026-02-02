@@ -1,0 +1,92 @@
+Jan 30, 2026 7:28:06 PM seedu.address.Main main
+WARNING: The warning about Unsupported JavaFX configuration below (if any) can be ignored.
+Jan 30, 2026 7:28:07 PM seedu.address.MainApp init
+INFO: =============================[ Initializing AddressBook ]===========================
+Jan 30, 2026 7:28:07 PM seedu.address.MainApp initConfig
+INFO: Using config file : config.json
+Jan 30, 2026 7:28:07 PM seedu.address.MainApp initConfig
+INFO: Creating new config file config.json
+Jan 30, 2026 7:28:07 PM seedu.address.commons.core.LogsCenter init
+INFO: Log level will be set as: INFO
+Jan 30, 2026 7:28:07 PM seedu.address.MainApp initPrefs
+INFO: Using preference file : preferences.json
+Jan 30, 2026 7:28:07 PM seedu.address.MainApp initPrefs
+INFO: Creating new preference file preferences.json
+Jan 30, 2026 7:28:07 PM seedu.address.MainApp initModelManager
+INFO: Using data file : data\addressbook.json
+Jan 30, 2026 7:28:07 PM seedu.address.MainApp initModelManager
+INFO: Creating a new data file data\addressbook.json populated with a sample AddressBook.
+Jan 30, 2026 7:28:07 PM seedu.address.MainApp start
+INFO: Starting AddressBook V0.2.2ea
+Jan 30, 2026 7:28:07 PM seedu.address.ui.UiManager start
+INFO: Starting UI...
+Jan 30, 2026 7:28:11 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][help]
+Jan 30, 2026 7:28:11 PM seedu.address.ui.MainWindow executeCommand
+INFO: Result: Opened help window.
+Jan 30, 2026 7:32:52 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][add n/sad p/sad e/sad@gmail.com a/sadness overload road t/am sad t/broke]
+Jan 30, 2026 7:32:52 PM seedu.address.ui.MainWindow executeCommand
+INFO: An error occurred while executing command: add n/sad p/sad e/sad@gmail.com a/sadness overload road t/am sad t/broke
+Jan 30, 2026 7:33:01 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][add n/sad p/123456e/sadgmail.com a/sadness overload road t/am sad t/broke]
+Jan 30, 2026 7:33:01 PM seedu.address.ui.MainWindow executeCommand
+INFO: An error occurred while executing command: add n/sad p/123456e/sadgmail.com a/sadness overload road t/am sad t/broke
+Jan 30, 2026 7:33:06 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][add n/sad p/123456 e/sadgmail.com a/sadness overload road t/am sad t/broke]
+Jan 30, 2026 7:33:06 PM seedu.address.ui.MainWindow executeCommand
+INFO: An error occurred while executing command: add n/sad p/123456 e/sadgmail.com a/sadness overload road t/am sad t/broke
+Jan 30, 2026 7:33:32 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/am sad t/broke]
+Jan 30, 2026 7:33:32 PM seedu.address.ui.MainWindow executeCommand
+INFO: An error occurred while executing command: add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/am sad t/broke
+Jan 30, 2026 7:33:36 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/am_sad t/broke]
+Jan 30, 2026 7:33:36 PM seedu.address.ui.MainWindow executeCommand
+INFO: An error occurred while executing command: add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/am_sad t/broke
+Jan 30, 2026 7:33:41 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/am_sad t/broke]
+Jan 30, 2026 7:33:41 PM seedu.address.ui.MainWindow executeCommand
+INFO: An error occurred while executing command: add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/am_sad t/broke
+Jan 30, 2026 7:33:45 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/am_sad]
+Jan 30, 2026 7:33:45 PM seedu.address.ui.MainWindow executeCommand
+INFO: An error occurred while executing command: add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/am_sad
+Jan 30, 2026 7:33:52 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][add n/sad p/123456 e/sad@gmail.com a/sadness overload road t/sad t/broke]
+Jan 30, 2026 7:33:52 PM seedu.address.ui.MainWindow executeCommand
+INFO: Result: New person added: sad; Phone: 123456; Email: sad@gmail.com; Address: sadness overload road; Tags: [broke][sad]
+Jan 30, 2026 7:39:48 PM seedu.address.MainApp stop
+INFO: ============================ [ Stopping AddressBook ] =============================
+Jan 31, 2026 5:49:09 PM seedu.address.Main main
+WARNING: The warning about Unsupported JavaFX configuration below (if any) can be ignored.
+Jan 31, 2026 5:49:10 PM seedu.address.MainApp init
+INFO: =============================[ Initializing AddressBook ]===========================
+Jan 31, 2026 5:49:10 PM seedu.address.MainApp initConfig
+INFO: Using config file : config.json
+Jan 31, 2026 5:49:10 PM seedu.address.commons.util.JsonUtil readJsonFile
+INFO: JSON file config.json found.
+Jan 31, 2026 5:49:10 PM seedu.address.commons.core.LogsCenter init
+INFO: Log level will be set as: INFO
+Jan 31, 2026 5:49:10 PM seedu.address.MainApp initPrefs
+INFO: Using preference file : preferences.json
+Jan 31, 2026 5:49:10 PM seedu.address.commons.util.JsonUtil readJsonFile
+INFO: JSON file preferences.json found.
+Jan 31, 2026 5:49:10 PM seedu.address.MainApp initModelManager
+INFO: Using data file : data\addressbook.json
+Jan 31, 2026 5:49:10 PM seedu.address.commons.util.JsonUtil readJsonFile
+INFO: JSON file data\addressbook.json found.
+Jan 31, 2026 5:49:10 PM seedu.address.MainApp start
+INFO: Starting AddressBook V0.2.2ea
+Jan 31, 2026 5:49:10 PM seedu.address.ui.UiManager start
+INFO: Starting UI...
+Jan 31, 2026 5:49:23 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][find]
+Jan 31, 2026 5:49:23 PM seedu.address.ui.MainWindow executeCommand
+INFO: An error occurred while executing command: find
+Jan 31, 2026 5:49:32 PM seedu.address.logic.LogicManager execute
+INFO: ----------------[USER COMMAND][find sad@gmail.com]
+Jan 31, 2026 5:49:32 PM seedu.address.ui.MainWindow executeCommand
+INFO: Result: 0 persons listed!
+Jan 31, 2026 5:53:46 PM seedu.address.MainApp stop
+INFO: ============================ [ Stopping AddressBook ] =============================
