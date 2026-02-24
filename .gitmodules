@@ -4,3 +4,6 @@
 [submodule "CS2103_Software_Engineering/ip"]
 	path = CS2103_Software_Engineering/ip
 	url = https://github.com/Blahblahlolhahaha/ip.git
+[submodule "CS2103_Software_Engineering/tp/tp"]
+	path = CS2103_Software_Engineering/tp/tp
+	url = https://github.com/Blahblahlolhahaha/tp.git
