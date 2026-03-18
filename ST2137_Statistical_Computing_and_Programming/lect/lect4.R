@@ -10,3 +10,4 @@ library(lattice)
 library(psych)
 col_to_use = c("Cement", "Slag", "Compressive Strength (28-day)(Mpa)", "Water", "SLUMP.cm.", "FLOW.cm.")
 corPlot(cor(sad[, col_to_use]), cex = 0.8)
+
