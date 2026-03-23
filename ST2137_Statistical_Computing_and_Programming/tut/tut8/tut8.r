@@ -6,13 +6,16 @@ machine
 
 old <- machine[machine$machine == "O", "strength"]
 new <- machine[machine$machine == "N", "strength"]
-
-t.test(old, new, paired=TRUE)
+var.test(old,new)
+t.test(new, old, paired=TRUE, alternative="greater", var.equal=TRUE)
 
 flextime = read.csv("flextime.txt", sep=" ")
 before <- flextime$before
 after <- flextime$after
 
-t.test(before, after, paired = TRUE)
+wilcox.test(after, before, paired=TRUE, alternative="greater") # non-parametric oops
 
 stack(flextime[,c("before", "after")])
+
+
+weeklies = read.csv("weeklies.txt")
