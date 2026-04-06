@@ -8,12 +8,7 @@ model <- lm(FEV ~ Age + Ht + Gender + Smoke, data = fev)
 sad <- summary(model)
 anova(model)
 
-residual_ss <- function(data) {
-    sum((data - mean(data)) ** 2)
-}
-
-resi_ss <- residual_ss(model$residuals)
-sigma2 <- resi_ss / (NROW(fev) - 5)
+sigma2 <- sigma(model) ** 2
 adj_r2 <- sad$adj.r.squared
 fstat <- sad$fstatistic[1]
 
