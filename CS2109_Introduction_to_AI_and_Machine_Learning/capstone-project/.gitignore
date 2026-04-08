@@ -1,1 +1,4 @@
 data/new_training/
+data/train/
+data/val/
+data/test/
