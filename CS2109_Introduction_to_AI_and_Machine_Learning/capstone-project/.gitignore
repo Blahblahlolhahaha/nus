@@ -2,3 +2,6 @@ data/new_training/
 data/train/
 data/val/
 data/test/
+data/direction_w_bg/
+data/entity/
+data/floor/

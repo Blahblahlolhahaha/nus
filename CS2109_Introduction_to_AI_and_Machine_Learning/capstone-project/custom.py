@@ -98,12 +98,10 @@ def overlay_background(entity_folder: str, background_folder: str, output_folder
 
         for entity_file_name in os.listdir(label_folder_path):
             entity_path = os.path.join(label_folder_path, entity_file_name)
-            print(entity_path)
             entity_image = Image.open(entity_path).convert("RGBA")
 
             for background_file_name in os.listdir(background_folder):
                 background_path = os.path.join(background_folder, background_file_name)
-                print(background_path)
                 background_image = Image.open(background_path).convert("RGBA").resize(entity_image.size)
 
                 overlaid_image = Image.alpha_composite(background_image, entity_image)
