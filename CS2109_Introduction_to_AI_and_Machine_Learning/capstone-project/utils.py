@@ -159,7 +159,7 @@ def get_model():
     return model
 '''
 
-  
+
 
 # =========================
 # PyTorch generator
@@ -619,7 +619,7 @@ def evaluate(agent_class: type[Agent], env: GridAdventureEnv) -> tuple[float, bo
 
     assert env.state is not None
     history.append((from_state(env.state), Action.WAIT))  # final state
-    
+
     return total_reward, win, lose, history
 
 
@@ -640,11 +640,11 @@ def get_performance(total_reward: float, optimal_total_reward: float, minimum_to
 
 
 def evaluate_level(
-        agent_class, 
-        builder: Callable[[], GridState], 
+        agent_class,
+        builder: Callable[[], GridState],
         max_total_reward: int,
         min_total_reward: int,
-        observation_type: str = 'gridstate', 
+        observation_type: str = 'gridstate',
         time_limit: int | None = None,
         turn_limit: int | None = None,
         seed: int = 42,
@@ -652,23 +652,25 @@ def evaluate_level(
     ) -> dict[str, float | str | bool]:
     level_name = get_level_name(builder)
     env = create_env(builder, observation_type=observation_type, seed=seed, turn_limit=turn_limit, **kwargs)
-    
+
     total_reward = 0.0
     win = False
     lose = False
     error = False
-    
+
     runtime = time_limit
     try:
         start_time = time.time()
         total_reward, win, lose, _ = evaluate(agent_class, env)
         runtime = time.time() - start_time
     except Exception as e:
+        # import traceback
+        # traceback.print_exc()
         print(f"Error during evaluation of {level_name}: {e}")
         error = True
 
     timeout = runtime >= (time_limit if time_limit is not None else float('inf'))
-    
+
     performance = get_performance(total_reward, max_total_reward, min_total_reward, win)
     return {
         'level_name': f"{level_name} ({observation_type})",

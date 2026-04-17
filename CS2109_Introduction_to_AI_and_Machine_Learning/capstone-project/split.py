@@ -16,11 +16,14 @@ for class_name in os.listdir(src):
 
     images = os.listdir(class_path)
     random.shuffle(images)
-    n_val = int(n * 0.20)
-    test_images = images[:n_test]
+    n = len(images)
+    n_val = int(n * 0.15)
+    n_test = int(n * 0.15) + n_val
+    val_images = images[:n_val]
+    test_images = images[n_val:n_test]
     train_images = images[n_test:]
 
-    for dst, split in [(train_dst, train_images), (test_dst, test_images)]:
+    for dst, split in [(train_dst, train_images), (test_dst, test_images), (val_dst, val_images)]:
         os.makedirs(os.path.join(dst, class_name), exist_ok=True)
         for img in split:
             shutil.copy(

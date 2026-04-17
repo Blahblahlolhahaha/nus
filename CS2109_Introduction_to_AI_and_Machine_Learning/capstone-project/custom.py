@@ -105,7 +105,7 @@ def overlay_background(entity_folder: str, background_folder: str, output_folder
                 background_image = Image.open(background_path).convert("RGBA").resize(entity_image.size)
 
                 overlaid_image = Image.alpha_composite(background_image, entity_image)
-                
+
                 entity_name = os.path.splitext(entity_file_name)[0]
                 background_name = os.path.splitext(background_file_name)[0]
                 output_file_name = f"{entity_name}_on_{background_name}.png"
