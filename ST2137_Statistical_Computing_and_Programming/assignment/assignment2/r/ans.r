@@ -1,3 +1,5 @@
+setwd("c:\\Users\\sad\\Documents\\GitHub\\nus\\ST2137_Statistical_Computing_And_Programming\\assignment\\assignment2\\r")
+
 fev <- read.table("data/FEV.DAT", header = TRUE)
 
 fev$Gender  <- factor(x=fev$Gender, levels=sort(unique(fev$Gender)), labels = c( "female", "male"))
@@ -6,7 +8,21 @@ fev$Smoke  <- factor(x=fev$Smoke, levels=sort(unique(fev$Smoke)), labels = c( "N
 
 model <- lm(FEV ~ Age + Ht + Gender + Smoke, data = fev)
 sad <- summary(model)
+r_s <- sort(abs(rstandard(model)), decreasing = TRUE)
+r_s[1:3]
+fev[c(624,648,452),]
 anova(model)
+
+model2 <- lm(FEV ~ Ht + Gender + Ht:Gender, data = fev)
+summary(model2)
+
+model2 <- lm(FEV ~ Ht * Gender, data = fev)
+summary(model2)
+
+rpois()
+
+model2 <- lm(FEV ~ Ht:C(Gender, base=1), data = fev)
+summary(model2)
 
 sigma2 <- sigma(model) ** 2
 adj_r2 <- sad$adj.r.squared
@@ -43,7 +59,7 @@ quantiles <- quantile(data, probs = c(0.25, 0.5, 0.75), names = FALSE)
 robust_kurt <- function(data) {
 quantiles <- quantile(data, probs = seq(0.125, 1, 0.125), names=FALSE)
 deno <- (quantiles[6] - quantiles[2])
-numer <- (quantiles[7] - quantiles[5] + quantiles[3] - quantiles[1]) 
+numer <- (quantiles[7] - quantiles[5] + quantiles[3] - quantiles[1])
 numer / deno - 1.23
 }
 
