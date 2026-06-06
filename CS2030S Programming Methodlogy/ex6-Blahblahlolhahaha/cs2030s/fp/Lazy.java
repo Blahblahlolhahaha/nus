@@ -1,5 +1,7 @@
 package cs2030s.fp;
 
+import cs2030s.fp.Maybe;
+
 /**
  * This class implements a lazily evaluated value.
  * The value is computed only when needed and the
@@ -32,7 +34,8 @@ public class Lazy<T> {
   }
 
   public T get() {
-    return value.orElse(() -> (value = Maybe.of(producer.produce())).orElse(producer));
+    this.value = Maybe.some(this.value.orElseGet(producer));
+    return this.value.orElseGet(null);
   }
 
   public <U> Lazy<U> map(Transformer<? super T, ? extends U> trans) {
@@ -62,7 +65,7 @@ public class Lazy<T> {
 
   @Override
   public String toString() {
-    return value.map(x -> String.valueOf(x)).orElse(() -> "?");
+    return value.map(x -> String.valueOf(x)).orElseGet(() -> "?");
   }
 
 
