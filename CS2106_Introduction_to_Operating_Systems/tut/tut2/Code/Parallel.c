@@ -27,21 +27,16 @@ int main()
 
     for(int i = 0; i < numDigits; i++) {
         scanf("%d", &userInput[i]);
-    }
-
-    for (int i = 0; i < numDigits; i++) {
         childPids[i] = fork();
 
-        if (childPids[i] != 0 ){
-
-        } else {
+        if (childPids[i] == 0 ){
             //Easy way to convert a number into a string
             sprintf(cStringExample, "%d", userInput[i]);
 
             execl("./PF", "PF", cStringExample, NULL);
         }
+    }
 
-    } 
     int numResults = 0;
     while(numResults < numDigits) {
         pid_t pid = wait( &childResult);
@@ -52,4 +47,6 @@ int main()
         }
         numResults++;
     }
+    free(userInput);
+    free(childPids);
 }
