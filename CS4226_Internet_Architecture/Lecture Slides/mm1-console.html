@@ -1,0 +1,1027 @@
+<title>Single-Server Queue Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1018;
+    --surface:#121b27;
+    --surface-raised:#17212e;
+    --surface-sunken:#0d1420;
+    --border:#24303d;
+    --border-strong:#34445a;
+    --text:#e8edf2;
+    --text-muted:#93a5b8;
+    --text-faint:#5c6e82;
+    --accent-live:#bb7a22;
+    --accent-live-hover:#d2952f;
+    --accent-ref:#1e9a92;
+    --accent-ref-hover:#2ab8ae;
+    --status-good:#4ade80;
+    --status-critical:#f87171;
+    --font-display:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --font-body:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+  }
+
+  .console{
+    max-width:1280px;
+    margin:0 auto;
+    padding:36px 24px 56px;
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--border);
+    padding-bottom:22px;
+  }
+  .eyebrow{
+    display:block;
+    font-family:var(--font-display);
+    font-size:12px;
+    letter-spacing:0.14em;
+    color:var(--accent-live);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:28px;
+    margin:0;
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+  }
+  .subtitle{
+    margin:6px 0 0;
+    color:var(--text-muted);
+    font-size:14px;
+    max-width:52ch;
+  }
+  .status-pill{
+    font-family:var(--font-display);
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    padding:7px 14px;
+    border-radius:999px;
+    border:1px solid var(--border-strong);
+    background:var(--surface-raised);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    white-space:nowrap;
+  }
+  .status-pill .dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--status-good);
+    box-shadow:0 0 8px var(--status-good);
+  }
+  .status-pill.unstable .dot{
+    background:var(--status-critical);
+    box-shadow:0 0 8px var(--status-critical);
+  }
+  .status-pill.unstable{ color:var(--status-critical); border-color:#5a2b2b; }
+  .status-pill.stable{ color:var(--status-good); }
+
+  /* ---------- control rack ---------- */
+  .rack{
+    background:var(--surface-raised);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px 24px;
+    display:flex;
+    gap:36px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .control{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-width:190px;
+  }
+  .control label{
+    font-family:var(--font-display);
+    font-size:11px;
+    letter-spacing:0.08em;
+    color:var(--text-muted);
+    text-transform:uppercase;
+  }
+  .control .row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  input[type=range]{
+    flex:1;
+    accent-color:var(--accent-live);
+    height:4px;
+    cursor:pointer;
+  }
+  input[type=number]{
+    width:64px;
+    background:var(--surface-sunken);
+    border:1px solid var(--border-strong);
+    color:var(--text);
+    font-family:var(--font-display);
+    font-variant-numeric:tabular-nums;
+    font-size:13px;
+    border-radius:6px;
+    padding:5px 6px;
+    text-align:right;
+  }
+  .rho-readout{
+    min-width:120px;
+  }
+  .rho-readout .value{
+    font-family:var(--font-display);
+    font-size:22px;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
+  .transport{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-left:auto;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:var(--font-display);
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    color:var(--bg);
+    background:var(--accent-live);
+    border:none;
+    border-radius:8px;
+    padding:10px 18px;
+    cursor:pointer;
+    transition:background 0.15s ease, transform 0.1s ease;
+  }
+  .btn:hover{ background:var(--accent-live-hover); }
+  .btn:active{ transform:translateY(1px); }
+  .btn.secondary{
+    background:transparent;
+    color:var(--text-muted);
+    border:1px solid var(--border-strong);
+  }
+  .btn.secondary:hover{ color:var(--text); border-color:var(--text-muted); }
+  .btn:disabled{
+    background:var(--surface-sunken);
+    color:var(--text-faint);
+    cursor:not-allowed;
+  }
+  button:focus-visible, input:focus-visible, summary:focus-visible{
+    outline:2px solid var(--accent-live);
+    outline-offset:2px;
+  }
+  .speed-control{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:140px;
+  }
+  .speed-control .row{ display:flex; align-items:center; gap:10px; }
+  .speed-control span.value{
+    font-family:var(--font-display);
+    font-size:13px;
+    min-width:34px;
+    color:var(--text);
+  }
+
+  /* ---------- warning ---------- */
+  .warning-banner{
+    background:#241414;
+    border:1px solid #5a2b2b;
+    color:#ffb4b4;
+    border-radius:10px;
+    padding:12px 18px;
+    font-size:13.5px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  /* ---------- panels ---------- */
+  .panels{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  @media (max-width:900px){
+    .panels{ grid-template-columns:1fr; }
+  }
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    min-width:0;
+  }
+  .panel h2{
+    font-family:var(--font-display);
+    font-size:14px;
+    letter-spacing:0.04em;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--text);
+  }
+  .tag{
+    font-family:var(--font-display);
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:0.08em;
+    padding:3px 7px;
+    border-radius:5px;
+  }
+  .tag.ref{ background:rgba(30,154,146,0.16); color:var(--accent-ref); }
+  .tag.live{ background:rgba(187,122,34,0.18); color:var(--accent-live); }
+
+  .formula-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px 16px;
+  }
+  .formula-item{
+    background:var(--surface-sunken);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+  }
+  .formula-item .k{
+    font-size:11px;
+    color:var(--text-muted);
+    letter-spacing:0.02em;
+  }
+  .formula-item .v{
+    font-family:var(--font-display);
+    font-size:17px;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    color:var(--accent-ref);
+  }
+
+  .chart-block{ display:flex; flex-direction:column; gap:8px; }
+  .chart-head h3{
+    font-size:12px;
+    font-weight:600;
+    margin:0;
+    color:var(--text-muted);
+    letter-spacing:0.01em;
+  }
+  svg.pn-chart{ width:100%; height:auto; overflow:visible; }
+  .bar{ fill:var(--accent-ref); opacity:0.85; cursor:pointer; }
+  .bar:hover{ opacity:1; }
+  .axis-line{ stroke:var(--border-strong); stroke-width:1; }
+  .axis-label{ fill:var(--text-faint); font-family:var(--font-display); font-size:9px; }
+  .grid-line{ stroke:var(--border); stroke-width:1; }
+
+  details.table-toggle summary{
+    font-size:12px;
+    color:var(--text-muted);
+    cursor:pointer;
+    user-select:none;
+  }
+  details.table-toggle table{
+    margin-top:8px;
+    width:100%;
+    border-collapse:collapse;
+    font-family:var(--font-display);
+    font-size:11.5px;
+  }
+  details.table-toggle th, details.table-toggle td{
+    border-bottom:1px solid var(--border);
+    padding:4px 6px;
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  details.table-toggle th{ color:var(--text-muted); font-weight:500; }
+  .table-scroll{ overflow-x:auto; }
+
+  /* ---------- sim panel ---------- */
+  .rail-wrap{
+    background:var(--surface-sunken);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+  }
+  canvas{ display:block; width:100%; }
+  .sim-readout{
+    display:flex;
+    justify-content:space-between;
+    font-family:var(--font-display);
+    font-size:11.5px;
+    color:var(--text-muted);
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .sim-readout b{ color:var(--text); font-weight:600; }
+  .trace-wrap{ position:relative; }
+  .tooltip{
+    position:absolute;
+    pointer-events:none;
+    background:var(--surface-raised);
+    border:1px solid var(--border-strong);
+    border-radius:6px;
+    padding:6px 9px;
+    font-family:var(--font-display);
+    font-size:11px;
+    color:var(--text);
+    white-space:nowrap;
+    opacity:0;
+    transform:translate(-50%,-115%);
+    transition:opacity 0.1s ease;
+    z-index:5;
+  }
+  .tooltip.show{ opacity:1; }
+
+  /* ---------- comparison ---------- */
+  .comparison{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px 22px;
+    overflow-x:auto;
+  }
+  .comparison h2{
+    font-family:var(--font-display);
+    font-size:14px;
+    margin:0 0 14px;
+    letter-spacing:0.04em;
+  }
+  .compare-grid{
+    display:grid;
+    grid-template-columns:1.4fr 1fr 1fr;
+    min-width:420px;
+    gap:0;
+  }
+  .compare-grid > div{
+    padding:9px 10px;
+    border-bottom:1px solid var(--border);
+    font-family:var(--font-display);
+    font-size:13px;
+    font-variant-numeric:tabular-nums;
+  }
+  .compare-grid .metric-name{
+    font-family:var(--font-body);
+    color:var(--text-muted);
+    font-size:13px;
+  }
+  .compare-grid .head{
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    color:var(--text-muted);
+    border-bottom:1px solid var(--border-strong);
+  }
+  .compare-grid .ref-val{ color:var(--accent-ref); font-weight:600; }
+  .compare-grid .live-val{ color:var(--accent-live); font-weight:600; }
+  .littles-note{
+    margin:14px 2px 0;
+    font-size:12px;
+    color:var(--text-faint);
+    max-width:70ch;
+  }
+
+  footer.note{
+    text-align:center;
+    color:var(--text-faint);
+    font-size:12px;
+    padding-top:6px;
+  }
+</style>
+
+<div class="console">
+
+  <header class="masthead">
+    <div>
+      <span class="eyebrow">M/M/1 QUEUE · POISSON ARRIVALS · EXPONENTIAL SERVICE</span>
+      <h1>Single-Server Queue Console</h1>
+      <p class="subtitle">Applies to any single-server FIFO queue — a router's output buffer, a support desk, a single checkout lane.</p>
+    </div>
+    <div class="status-pill stable" id="statusPill"><span class="dot"></span><span id="statusText">STABLE</span></div>
+  </header>
+
+  <section class="rack" aria-label="Controls">
+    <div class="control">
+      <label for="lambdaSlider">λ — arrivals / min</label>
+      <div class="row">
+        <input type="range" id="lambdaSlider" min="0.1" max="12" step="0.05" value="4">
+        <input type="number" id="lambdaNum" min="0.1" max="12" step="0.05" value="4">
+      </div>
+    </div>
+    <div class="control">
+      <label for="muSlider">μ — service completions / min</label>
+      <div class="row">
+        <input type="range" id="muSlider" min="0.1" max="12" step="0.05" value="6">
+        <input type="number" id="muNum" min="0.1" max="12" step="0.05" value="6">
+      </div>
+    </div>
+    <div class="control rho-readout">
+      <label>ρ = λ / μ</label>
+      <span class="value" id="rhoValue">0.667</span>
+    </div>
+    <div class="transport">
+      <button class="btn" id="playBtn">▶ Play</button>
+      <button class="btn secondary" id="resetBtn">⟲ Reset</button>
+      <div class="speed-control">
+        <label for="speedSlider">Playback speed</label>
+        <div class="row">
+          <input type="range" id="speedSlider" min="0" max="5" step="1" value="1">
+          <span class="value" id="speedLabel">1×</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="warning-banner" id="warningBanner" hidden>
+    ⚠ Unstable system — μ must exceed λ (ρ &lt; 1). The queue grows without bound, so the simulation is paused and steady-state formulas don't apply.
+  </div>
+
+  <main class="panels">
+    <section class="panel">
+      <h2><span class="tag ref">REF</span> Steady-State Theory</h2>
+      <div class="formula-grid">
+        <div class="formula-item"><span class="k">P₀ — system empty</span><span class="v" id="fP0">–</span></div>
+        <div class="formula-item"><span class="k">L — avg. in system</span><span class="v" id="fL">–</span></div>
+        <div class="formula-item"><span class="k">Lq — avg. in queue</span><span class="v" id="fLq">–</span></div>
+        <div class="formula-item"><span class="k">W — avg. time in system</span><span class="v" id="fW">–</span></div>
+        <div class="formula-item"><span class="k">Wq — avg. wait in queue</span><span class="v" id="fWq">–</span></div>
+        <div class="formula-item"><span class="k">ρ — utilization</span><span class="v" id="fRho">–</span></div>
+      </div>
+      <div class="chart-block">
+        <div class="chart-head"><h3>P(n) — probability of exactly n customers in system</h3></div>
+        <svg class="pn-chart" id="pnChart" viewBox="0 0 480 190" preserveAspectRatio="xMidYMid meet"></svg>
+        <details class="table-toggle">
+          <summary>Show as table</summary>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>n</th><th id="tblHead">P(n)</th></tr></thead>
+              <tbody id="pnTableBody"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span class="tag live">LIVE</span> Simulation</h2>
+      <div class="rail-wrap">
+        <canvas id="railCanvas" height="70"></canvas>
+      </div>
+      <div class="sim-readout">
+        <span>customers served: <b id="servedCount">0</b></span>
+        <span>currently waiting: <b id="waitingCount">0</b></span>
+        <span>sim time: <b id="simTimeLabel">0.0</b> min</span>
+      </div>
+      <div class="chart-block">
+        <div class="chart-head"><h3>Customers in system, last 20 sim-minutes</h3></div>
+        <div class="trace-wrap">
+          <canvas id="traceCanvas" height="180"></canvas>
+          <div class="tooltip" id="traceTooltip"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="comparison" aria-label="Theory vs live comparison">
+    <h2>Reference vs. Live Averages</h2>
+    <div class="compare-grid">
+      <div class="head">metric</div>
+      <div class="head" style="color:var(--accent-ref)">REF (theory)</div>
+      <div class="head" style="color:var(--accent-live)">LIVE (measured)</div>
+
+      <div class="metric-name">Utilization ρ</div>
+      <div class="ref-val" id="cmpRhoRef">–</div>
+      <div class="live-val" id="cmpRhoLive">–</div>
+
+      <div class="metric-name">Avg. in system, L</div>
+      <div class="ref-val" id="cmpLRef">–</div>
+      <div class="live-val" id="cmpLLive">–</div>
+
+      <div class="metric-name">Avg. in queue, Lq</div>
+      <div class="ref-val" id="cmpLqRef">–</div>
+      <div class="live-val" id="cmpLqLive">–</div>
+
+      <div class="metric-name">Avg. time in system, W (min)</div>
+      <div class="ref-val" id="cmpWRef">–</div>
+      <div class="live-val" id="cmpWLive">–</div>
+
+      <div class="metric-name">Avg. wait in queue, Wq (min)</div>
+      <div class="ref-val" id="cmpWqRef">–</div>
+      <div class="live-val" id="cmpWqLive">–</div>
+    </div>
+    <p class="littles-note">Little's law holds exactly for the theory column (L = λW, Lq = λWq) and should hold approximately for the live column as the run gets longer — press Play and watch LIVE drift toward REF.</p>
+  </section>
+
+  <footer class="note">M/M/1: Poisson arrivals, exponentially distributed service, one server, FIFO discipline, unbounded buffer.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const el = id => document.getElementById(id);
+  const lambdaSlider = el('lambdaSlider'), lambdaNum = el('lambdaNum');
+  const muSlider = el('muSlider'), muNum = el('muNum');
+  const rhoValue = el('rhoValue');
+  const statusPill = el('statusPill'), statusText = el('statusText');
+  const playBtn = el('playBtn'), resetBtn = el('resetBtn');
+  const speedSlider = el('speedSlider'), speedLabel = el('speedLabel');
+  const warningBanner = el('warningBanner');
+  const railCanvas = el('railCanvas'), traceCanvas = el('traceCanvas');
+  const traceTooltip = el('traceTooltip');
+
+  const SPEEDS = [0.5, 1, 2, 5, 10, 25];
+
+  let lambda = 4, mu = 6;
+  let isPlaying = false;
+  let speed = SPEEDS[1];
+  let lastFrameTs = null;
+  let flashTimer = 0;
+
+  function expRand(rate){
+    return -Math.log(1 - Math.random()) / rate;
+  }
+
+  function freshSimState(){
+    return {
+      simTime: 0,
+      serverBusy: false,
+      serverArrivalTime: null,
+      departureTime: Infinity,
+      queue: [],
+      nextArrival: expRand(lambda),
+      areaL: 0,
+      areaLq: 0,
+      busyTime: 0,
+      totalArrived: 0,
+      totalDeparted: 0,
+      countStarted: 0,
+      sumWait: 0,
+      sumSojourn: 0,
+      history: []
+    };
+  }
+  let sim = freshSimState();
+
+  function startService(custArrival, atTime){
+    sim.serverBusy = true;
+    sim.serverArrivalTime = custArrival;
+    const wait = atTime - custArrival;
+    sim.sumWait += wait;
+    sim.countStarted++;
+    sim.departureTime = atTime + expRand(mu);
+  }
+
+  function stepSimulation(target){
+    let iterations = 0;
+    while (iterations++ < 200000) {
+      const nextDeparture = sim.serverBusy ? sim.departureTime : Infinity;
+      const nextEvent = Math.min(sim.nextArrival, nextDeparture);
+      if (nextEvent > target) break;
+      const dt = nextEvent - sim.simTime;
+      const qLen = sim.queue.length;
+      const sysLen = qLen + (sim.serverBusy ? 1 : 0);
+      sim.areaLq += qLen * dt;
+      sim.areaL += sysLen * dt;
+      if (sim.serverBusy) sim.busyTime += dt;
+      sim.simTime = nextEvent;
+
+      if (nextEvent === sim.nextArrival) {
+        sim.totalArrived++;
+        if (!sim.serverBusy) {
+          startService(sim.simTime, sim.simTime);
+        } else {
+          sim.queue.push(sim.simTime);
+        }
+        sim.nextArrival = sim.simTime + expRand(lambda);
+      } else {
+        sim.totalDeparted++;
+        flashTimer = 1;
+        const sojourn = sim.simTime - sim.serverArrivalTime;
+        sim.sumSojourn += sojourn;
+        if (sim.queue.length > 0) {
+          const custArrival = sim.queue.shift();
+          startService(custArrival, sim.simTime);
+        } else {
+          sim.serverBusy = false;
+          sim.departureTime = Infinity;
+          sim.serverArrivalTime = null;
+        }
+      }
+    }
+    const dtRemain = target - sim.simTime;
+    if (dtRemain > 0) {
+      const qLen = sim.queue.length;
+      const sysLen = qLen + (sim.serverBusy ? 1 : 0);
+      sim.areaLq += qLen * dtRemain;
+      sim.areaL += sysLen * dtRemain;
+      if (sim.serverBusy) sim.busyTime += dtRemain;
+      sim.simTime = target;
+    }
+    sim.history.push({ t: sim.simTime, q: sim.queue.length + (sim.serverBusy ? 1 : 0) });
+    const cutoff = sim.simTime - 20;
+    while (sim.history.length > 2 && sim.history[0].t < cutoff) sim.history.shift();
+  }
+
+  function theory(){
+    const rho = lambda / mu;
+    if (rho >= 1) return { rho, unstable: true };
+    const P0 = 1 - rho;
+    const L = rho / (1 - rho);
+    const Lq = (rho * rho) / (1 - rho);
+    const W = 1 / (mu - lambda);
+    const Wq = rho / (mu - lambda);
+    return { rho, unstable: false, P0, L, Lq, W, Wq };
+  }
+
+  function fmt(x, d){
+    if (!isFinite(x)) return '—';
+    return x.toFixed(d === undefined ? 3 : d);
+  }
+
+  function updateStatusAndFormulas(){
+    const t = theory();
+    rhoValue.textContent = fmt(t.rho, 3);
+    if (t.unstable) {
+      statusPill.classList.remove('stable');
+      statusPill.classList.add('unstable');
+      statusText.textContent = 'UNSTABLE';
+      warningBanner.hidden = false;
+      playBtn.disabled = true;
+      if (isPlaying) { isPlaying = false; playBtn.textContent = '▶ Play'; }
+      ['fP0','fL','fLq','fW','fWq','fRho'].forEach(id => el(id).textContent = '—');
+      el('cmpRhoRef').textContent = fmt(t.rho, 3);
+      ['cmpLRef','cmpLqRef','cmpWRef','cmpWqRef'].forEach(id => el(id).textContent = '—');
+    } else {
+      statusPill.classList.remove('unstable');
+      statusPill.classList.add('stable');
+      statusText.textContent = 'STABLE';
+      warningBanner.hidden = true;
+      playBtn.disabled = false;
+      el('fP0').textContent = fmt(t.P0, 3);
+      el('fL').textContent = fmt(t.L, 3);
+      el('fLq').textContent = fmt(t.Lq, 3);
+      el('fW').textContent = fmt(t.W, 3) + ' min';
+      el('fWq').textContent = fmt(t.Wq, 3) + ' min';
+      el('fRho').textContent = fmt(t.rho, 3);
+      el('cmpRhoRef').textContent = fmt(t.rho, 3);
+      el('cmpLRef').textContent = fmt(t.L, 3);
+      el('cmpLqRef').textContent = fmt(t.Lq, 3);
+      el('cmpWRef').textContent = fmt(t.W, 3);
+      el('cmpWqRef').textContent = fmt(t.Wq, 3);
+    }
+    drawPnChart(t);
+    return t;
+  }
+
+  function updateLiveComparison(){
+    const busyFrac = sim.simTime > 0 ? sim.busyTime / sim.simTime : 0;
+    const avgL = sim.simTime > 0 ? sim.areaL / sim.simTime : 0;
+    const avgLq = sim.simTime > 0 ? sim.areaLq / sim.simTime : 0;
+    const avgW = sim.totalDeparted > 0 ? sim.sumSojourn / sim.totalDeparted : NaN;
+    const avgWq = sim.countStarted > 0 ? sim.sumWait / sim.countStarted : NaN;
+    const has = sim.simTime > 0;
+    el('cmpRhoLive').textContent = has ? fmt(busyFrac, 3) : '–';
+    el('cmpLLive').textContent = has ? fmt(avgL, 3) : '–';
+    el('cmpLqLive').textContent = has ? fmt(avgLq, 3) : '–';
+    el('cmpWLive').textContent = isFinite(avgW) ? fmt(avgW, 3) : '–';
+    el('cmpWqLive').textContent = isFinite(avgWq) ? fmt(avgWq, 3) : '–';
+    el('servedCount').textContent = sim.totalDeparted;
+    el('waitingCount').textContent = sim.queue.length;
+    el('simTimeLabel').textContent = fmt(sim.simTime, 1);
+  }
+
+  /* ---------------- P(n) chart ---------------- */
+  const PN_MAX_N = 20;
+  function drawPnChart(t){
+    const svg = el('pnChart');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const W = 480, H = 190, padL = 30, padB = 20, padT = 10, padR = 8;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+
+    const ns = [];
+    for (let n = 0; n <= PN_MAX_N; n++) ns.push(n);
+    const pns = ns.map(n => t.unstable ? 0 : (1 - t.rho) * Math.pow(t.rho, n));
+    const maxP = Math.max(0.05, ...pns);
+    const barW = plotW / ns.length;
+    const svgNS = 'http://www.w3.org/2000/svg';
+
+    // gridlines
+    const ticks = 4;
+    for (let i = 0; i <= ticks; i++) {
+      const frac = i / ticks;
+      const y = padT + plotH * (1 - frac);
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', padL); line.setAttribute('x2', W - padR);
+      line.setAttribute('y1', y); line.setAttribute('y2', y);
+      line.setAttribute('class', 'grid-line');
+      svg.appendChild(line);
+      const label = document.createElementNS(svgNS, 'text');
+      label.setAttribute('x', padL - 5); label.setAttribute('y', y + 3);
+      label.setAttribute('text-anchor', 'end');
+      label.setAttribute('class', 'axis-label');
+      label.textContent = (maxP * frac).toFixed(2);
+      svg.appendChild(label);
+    }
+
+    const axis = document.createElementNS(svgNS, 'line');
+    axis.setAttribute('x1', padL); axis.setAttribute('x2', W - padR);
+    axis.setAttribute('y1', H - padB); axis.setAttribute('y2', H - padB);
+    axis.setAttribute('class', 'axis-line');
+    svg.appendChild(axis);
+
+    ns.forEach((n, i) => {
+      const p = pns[i];
+      const barH = (p / maxP) * plotH;
+      const x = padL + i * barW;
+      const y = padT + plotH - barH;
+      const rect = document.createElementNS(svgNS, 'rect');
+      rect.setAttribute('x', x + barW * 0.15);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', Math.max(1, barW * 0.7));
+      rect.setAttribute('height', Math.max(0, barH));
+      rect.setAttribute('rx', 2);
+      rect.setAttribute('class', 'bar');
+      const title = document.createElementNS(svgNS, 'title');
+      title.textContent = 'n = ' + n + ', P(n) = ' + p.toFixed(4);
+      rect.appendChild(title);
+      svg.appendChild(rect);
+
+      if (n % 2 === 0) {
+        const label = document.createElementNS(svgNS, 'text');
+        label.setAttribute('x', x + barW / 2);
+        label.setAttribute('y', H - padB + 12);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('class', 'axis-label');
+        label.textContent = n;
+        svg.appendChild(label);
+      }
+    });
+
+    if (t.unstable) {
+      const msg = document.createElementNS(svgNS, 'text');
+      msg.setAttribute('x', W / 2);
+      msg.setAttribute('y', padT + plotH / 2);
+      msg.setAttribute('text-anchor', 'middle');
+      msg.setAttribute('fill', '#f87171');
+      msg.setAttribute('style', 'font-family:var(--font-display); font-size:12px;');
+      msg.textContent = 'No steady-state distribution while ρ ≥ 1';
+      svg.appendChild(msg);
+    }
+
+    const tbody = el('pnTableBody');
+    tbody.innerHTML = '';
+    ns.forEach((n, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + n + '</td><td>' + (t.unstable ? '—' : pns[i].toFixed(4)) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ---------------- rail canvas ---------------- */
+  function drawRail(){
+    const ctx = railCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = railCanvas.clientWidth || 600;
+    const cssH = 70;
+    if (railCanvas.width !== cssW * dpr || railCanvas.height !== cssH * dpr) {
+      railCanvas.width = cssW * dpr; railCanvas.height = cssH * dpr;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const slot = 16, gap = 6;
+    const maxSlots = Math.max(6, Math.floor((cssW - 140) / (slot + gap)));
+    const qLen = sim.queue.length;
+    const shown = Math.min(qLen, maxSlots);
+    const overflow = qLen - shown;
+
+    const serverX = cssW - 78;
+    const serverY = cssH / 2 - 17;
+
+    ctx.textBaseline = 'middle';
+    ctx.font = '11px "JetBrains Mono", monospace';
+
+    // queue slots, oldest (closest to being served) nearest the server box
+    let x = serverX - gap - slot;
+    for (let i = 0; i < shown; i++) {
+      ctx.fillStyle = 'rgba(187,122,34,0.85)';
+      roundRect(ctx, x, cssH / 2 - slot / 2, slot, slot, 3);
+      ctx.fill();
+      x -= (slot + gap);
+    }
+    if (overflow > 0) {
+      ctx.fillStyle = '#93a5b8';
+      ctx.textAlign = 'right';
+      ctx.fillText('+' + overflow, x + slot, cssH / 2);
+    }
+
+    // server box
+    flashTimer = Math.max(0, flashTimer - 0.06);
+    const pulse = reduceMotion ? (sim.serverBusy ? 0.9 : 0) : (sim.serverBusy ? 0.65 + 0.25 * Math.sin(performance.now() / 220) : 0);
+    const glow = Math.min(1, pulse + flashTimer);
+    ctx.strokeStyle = '#2ab8ae';
+    ctx.lineWidth = 2;
+    roundRect(ctx, serverX, serverY, 34, 34, 6);
+    ctx.stroke();
+    if (sim.serverBusy) {
+      ctx.fillStyle = 'rgba(187,122,34,' + (0.35 + 0.5 * glow) + ')';
+      roundRect(ctx, serverX, serverY, 34, 34, 6);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#5c6e82';
+    ctx.textAlign = 'left';
+    ctx.fillText('SERVER', serverX - 2, serverY - 12);
+
+    ctx.strokeStyle = '#24303d';
+    ctx.beginPath();
+    ctx.moveTo(0, cssH - 1);
+    ctx.lineTo(cssW, cssH - 1);
+    ctx.stroke();
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  /* ---------------- trace canvas ---------------- */
+  let lastTracePoints = [];
+  function drawTrace(){
+    const ctx = traceCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = traceCanvas.clientWidth || 600;
+    const cssH = 180;
+    if (traceCanvas.width !== cssW * dpr || traceCanvas.height !== cssH * dpr) {
+      traceCanvas.width = cssW * dpr; traceCanvas.height = cssH * dpr;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const padL = 34, padR = 8, padT = 10, padB = 18;
+    const plotW = cssW - padL - padR, plotH = cssH - padT - padB;
+
+    const hist = sim.history;
+    const tMax = hist.length ? hist[hist.length - 1].t : 0;
+    const tMin = Math.max(0, tMax - 20);
+    const qMax = Math.max(4, ...hist.map(p => p.q), 1);
+
+    ctx.strokeStyle = '#24303d';
+    ctx.lineWidth = 1;
+    ctx.font = '9px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#5c6e82';
+    const yTicks = 4;
+    for (let i = 0; i <= yTicks; i++) {
+      const frac = i / yTicks;
+      const y = padT + plotH * (1 - frac);
+      ctx.beginPath();
+      ctx.moveTo(padL, y); ctx.lineTo(cssW - padR, y);
+      ctx.stroke();
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(qMax * frac), padL - 5, y + 3);
+    }
+    ctx.textAlign = 'left';
+    ctx.fillText(fmt(tMin,0) + ' min', padL, cssH - 4);
+    ctx.textAlign = 'right';
+    ctx.fillText(fmt(tMax,1) + ' min', cssW - padR, cssH - 4);
+
+    lastTracePoints = [];
+    if (hist.length > 1) {
+      const xOf = t => padL + ((t - tMin) / Math.max(0.0001, tMax - tMin)) * plotW;
+      const yOf = q => padT + plotH - (q / qMax) * plotH;
+
+      ctx.beginPath();
+      ctx.moveTo(xOf(hist[0].t), cssH - padB);
+      for (let i = 0; i < hist.length; i++) {
+        const p = hist[i];
+        if (p.t < tMin) continue;
+        const px = xOf(p.t), py = yOf(p.q);
+        ctx.lineTo(px, py);
+        lastTracePoints.push({ x: px, y: py, t: p.t, q: p.q });
+      }
+      ctx.lineTo(xOf(hist[hist.length - 1].t), cssH - padB);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(187,122,34,0.14)';
+      ctx.fill();
+
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i < hist.length; i++) {
+        const p = hist[i];
+        if (p.t < tMin) continue;
+        const px = xOf(p.t), py = yOf(p.q);
+        if (!started) { ctx.moveTo(px, py); started = true; }
+        else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = '#bb7a22';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  traceCanvas.addEventListener('mousemove', (e) => {
+    if (!lastTracePoints.length) { traceTooltip.classList.remove('show'); return; }
+    const rect = traceCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    let nearest = lastTracePoints[0], best = Infinity;
+    for (const p of lastTracePoints) {
+      const d = Math.abs(p.x - mx);
+      if (d < best) { best = d; nearest = p; }
+    }
+    traceTooltip.textContent = 't=' + nearest.t.toFixed(1) + 'min · n=' + nearest.q;
+    traceTooltip.style.left = nearest.x + 'px';
+    traceTooltip.style.top = nearest.y + 'px';
+    traceTooltip.classList.add('show');
+  });
+  traceCanvas.addEventListener('mouseleave', () => traceTooltip.classList.remove('show'));
+
+  /* ---------------- animation loop ---------------- */
+  function frame(ts){
+    if (lastFrameTs == null) lastFrameTs = ts;
+    const dtReal = Math.min(0.25, (ts - lastFrameTs) / 1000);
+    lastFrameTs = ts;
+    if (isPlaying) {
+      stepSimulation(sim.simTime + dtReal * speed);
+      updateLiveComparison();
+    }
+    drawRail();
+    drawTrace();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* ---------------- controls wiring ---------------- */
+  function syncLambda(v){
+    lambda = Math.min(12, Math.max(0.1, v));
+    lambdaSlider.value = lambda; lambdaNum.value = lambda;
+    updateStatusAndFormulas();
+  }
+  function syncMu(v){
+    mu = Math.min(12, Math.max(0.1, v));
+    muSlider.value = mu; muNum.value = mu;
+    updateStatusAndFormulas();
+  }
+  lambdaSlider.addEventListener('input', () => syncLambda(parseFloat(lambdaSlider.value)));
+  lambdaNum.addEventListener('change', () => { if (lambdaNum.value !== '') syncLambda(parseFloat(lambdaNum.value)); });
+  muSlider.addEventListener('input', () => syncMu(parseFloat(muSlider.value)));
+  muNum.addEventListener('change', () => { if (muNum.value !== '') syncMu(parseFloat(muNum.value)); });
+
+  speedSlider.addEventListener('input', () => {
+    speed = SPEEDS[parseInt(speedSlider.value, 10)];
+    speedLabel.textContent = speed + '×';
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (theory().unstable) return;
+    isPlaying = !isPlaying;
+    playBtn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+    lastFrameTs = null;
+  });
+
+  resetBtn.addEventListener('click', () => {
+    sim = freshSimState();
+    isPlaying = false;
+    playBtn.textContent = '▶ Play';
+    lastFrameTs = null;
+    updateLiveComparison();
+  });
+
+  updateStatusAndFormulas();
+  updateLiveComparison();
+})();
+</script>

@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Interactive water-filling visualiser for max-min fair rate allocation - CS4226 Internet Architecture, NUS School of Computing.">
+<style>
+:root{color-scheme:light}
+body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif;background:#fafaf9}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Max-Min Water Filling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --plane:#edf1f1; --surface:#fbfcfc; --surface-2:#f1f5f5;
+  --ink:#0e1a1a; --ink-2:#4b5a5a; --muted:#7d8b8b;
+  --rule:#dce3e3; --edge:#c2cdcd;
+  --accent:#0f6d7d; --on-accent:#ffffff; --wash:rgba(15,109,125,.10);
+  --good:#0a7a0a; --good-line:#0ca30c; --stop:#a83430; --stop-line:#d03b3b;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --lift: 0 1px 2px rgba(14,26,26,.05), 0 10px 26px -20px rgba(14,26,26,.5);
+  --sans:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --serif:"IBM Plex Serif", ui-serif, Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --plane:#0a0f0f; --surface:#161d1d; --surface-2:#1d2626;
+    --ink:#eef4f3; --ink-2:#aebbba; --muted:#8a9797;
+    --rule:#26302f; --edge:#3a4544;
+    --accent:#4ab8cb; --on-accent:#062028; --wash:rgba(74,184,203,.15);
+    --good:#3cc23c; --good-line:#0ca30c; --stop:#e88b88; --stop-line:#d03b3b;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --lift: 0 1px 2px rgba(0,0,0,.4), 0 10px 26px -20px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0a0f0f; --surface:#161d1d; --surface-2:#1d2626;
+  --ink:#eef4f3; --ink-2:#aebbba; --muted:#8a9797;
+  --rule:#26302f; --edge:#3a4544;
+  --accent:#4ab8cb; --on-accent:#062028; --wash:rgba(74,184,203,.15);
+  --good:#3cc23c; --good-line:#0ca30c; --stop:#e88b88; --stop-line:#d03b3b;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --lift: 0 1px 2px rgba(0,0,0,.4), 0 10px 26px -20px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{background:var(--plane);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.app{max-width:1440px;margin:0 auto;padding:22px 22px 56px;display:flex;flex-direction:column;gap:16px}
+
+.hd{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 4px}
+.hd h1{font-family:var(--serif);font-weight:600;font-size:27px;line-height:1.15;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.hd p{margin:6px 0 0;color:var(--ink-2);max-width:64ch}
+.hd .rule{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+
+.cols{display:grid;grid-template-columns:430px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.cols{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.duo{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media (min-width:1300px){.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--lift);min-width:0}
+.panel > .sec{padding:14px 16px}
+.panel > .sec + .sec{border-top:1px solid var(--rule)}
+h2{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+h2 .hint{text-transform:none;letter-spacing:0;font-weight:400;font-size:11px;color:var(--muted);text-align:right}
+h3{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+h3:first-child{margin-top:0}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.warn{font-size:12px;color:var(--stop);margin:8px 0 0}
+
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+.btn{border:1px solid var(--edge);background:var(--surface);border-radius:6px;padding:5px 10px;font-size:12.5px;color:var(--ink-2);transition:background .12s,border-color .12s,color .12s}
+.btn:hover{background:var(--surface-2);color:var(--ink)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent);color:var(--on-accent)}
+.btn.on{background:var(--wash);border-color:var(--accent);color:var(--accent)}
+
+input[type=number]{font:500 13px/1.4 var(--mono);color:var(--ink);background:var(--surface-2);border:1px solid var(--edge);border-radius:5px;padding:5px 6px;width:100%;min-width:0}
+input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+input:focus{background:var(--surface);border-color:var(--accent);outline:none;box-shadow:0 0 0 2px var(--wash)}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{display:grid;align-items:center;gap:7px}
+.colhead{display:grid;align-items:end;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding-bottom:3px}
+.g-link{grid-template-columns:38px 1fr 24px}
+.g-flow{grid-template-columns:34px 58px 52px 1fr 24px}
+.colhead > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:5px;min-width:0}
+.tag span{overflow:hidden;text-overflow:ellipsis}
+.swatch{width:10px;height:10px;border-radius:2px;flex:0 0 auto}
+.del{color:var(--muted);font-size:15px;line-height:1;width:24px;height:24px;border-radius:5px;display:grid;place-items:center}
+.del:hover{background:var(--surface-2);color:var(--stop)}
+.routes{display:flex;flex-wrap:wrap;gap:3px}
+.rbtn{font-family:var(--mono);font-size:10.5px;min-width:22px;height:24px;padding:0 4px;border:1px solid var(--edge);border-radius:5px;color:var(--muted);background:var(--surface-2);transition:all .12s}
+.rbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.addrow{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.cons{display:flex;flex-direction:column;gap:5px;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;max-height:190px;overflow-y:auto}
+.cons > div{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.cons .lhs{color:var(--ink-2);overflow-wrap:anywhere}
+.cons .rhs{color:var(--muted);white-space:nowrap}
+.cons .full .rhs{color:var(--stop)}
+
+.stepbar{background:var(--surface);border:1px solid var(--rule);border-radius:10px;box-shadow:var(--lift);padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.steprow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trans{display:flex;gap:4px}
+.trans .btn{width:32px;height:30px;padding:0;display:grid;place-items:center;font-size:13px}
+input[type=range]{flex:1 1 180px;min-width:140px;accent-color:var(--accent);height:26px;background:none;border:none;padding:0}
+.counter{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.caption{font-size:13.5px;color:var(--ink-2);min-height:20px;text-wrap:pretty}
+.caption b{font-weight:600;color:var(--ink)}
+.level{font-family:var(--mono);font-size:12.5px;color:var(--accent);background:var(--wash);border-radius:5px;padding:4px 8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;padding:0 16px 12px}
+.lg{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;color:var(--ink-2);border:none;padding:2px 4px;border-radius:5px;cursor:pointer}
+.lg:hover{background:var(--surface-2)}
+.lg.dim{opacity:.4}
+.lg i{width:10px;height:10px;border-radius:2px;display:block;flex:0 0 auto}
+
+.chartwrap{overflow-x:auto;padding:0 16px 14px}
+svg{display:block;max-width:100%}
+.gridline{stroke:var(--rule);stroke-width:1}
+.axistext{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.bucketbg{fill:var(--surface-2)}
+.bucketline{fill:none;stroke:var(--edge);stroke-width:1}
+.freezecap{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.levelline{stroke:var(--ink-2);stroke-width:1.5;stroke-dasharray:5 4}
+.vallabel{font-family:var(--mono);font-size:11px;font-weight:500;fill:var(--ink)}
+.flowlabel{font-family:var(--mono);font-size:11px;fill:var(--ink-2)}
+.wlabel{font-family:var(--mono);font-size:9.5px;fill:var(--muted)}
+.hit{fill:transparent;cursor:pointer}
+.hit:hover,.hit:focus-visible{fill:var(--wash)}
+.dim{opacity:.3}
+
+.bars{display:flex;flex-direction:column;gap:9px;padding:0 16px 14px;max-height:340px;overflow-y:auto}
+.brow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px}
+.bname{font-family:var(--mono);font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis}
+.bfield{min-width:0}
+.btrack{height:24px;border-radius:5px;background:var(--surface-2);border:1px solid var(--rule);display:flex;overflow:hidden}
+.bseg{height:100%;box-shadow:2px 0 0 var(--surface);transition:width .38s cubic-bezier(.4,0,.2,1);cursor:pointer}
+.btrack.sat{border-color:var(--stop-line);box-shadow:inset 0 0 0 1px var(--stop-line)}
+.bmeta{font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:7px}
+.chip{font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 6px;border:1px solid;white-space:nowrap}
+.chip.sat{color:var(--stop);border-color:var(--stop-line)}
+.chip.met{color:var(--good);border-color:var(--good-line)}
+.chip.ghost{color:var(--muted);border-color:var(--rule)}
+
+.tablewrap{overflow:auto;max-height:420px;padding:0 16px 6px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:right;padding:7px 10px;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+td:last-child,th:last-child{padding-right:0;text-align:left}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--muted);font-weight:400;position:sticky;top:0;background:var(--surface)}
+td{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--surface-2)}
+tbody tr.on td{background:var(--wash)}
+tbody tr:last-child td{border-bottom:none}
+td.reason{font-family:var(--sans);color:var(--ink-2);font-size:12.5px;white-space:normal}
+
+.verdict{margin:0 16px 16px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:11px 14px;background:var(--surface-2);font-size:13px;color:var(--ink-2);text-wrap:pretty}
+.verdict.bad{border-left-color:var(--stop-line)}
+.verdict b{color:var(--ink);font-weight:600}
+.verdict .cite{display:block;margin-top:6px;font-size:11.5px;color:var(--muted)}
+
+.tip{position:fixed;z-index:50;pointer-events:none;opacity:0;transform:translate(-50%,-100%);transition:opacity .12s;background:var(--ink);color:var(--plane);font-family:var(--mono);font-size:11.5px;line-height:1.5;padding:6px 9px;border-radius:6px;white-space:pre-line;max-width:280px;box-shadow:0 6px 20px -8px rgba(0,0,0,.5)}
+.tip.on{opacity:1}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hd">
+    <div>
+      <p class="eyebrow">CS4226 &middot; Resource Allocation</p>
+      <h1>Max-Min Water Filling</h1>
+      <p>Give each link a capacity and each flow a demand, a weight and the links it crosses — then watch progressive filling raise every unfrozen flow at rate &phi;<sub>i</sub> until a link saturates or a demand is met.</p>
+    </div>
+    <div class="rule">x<sub>i</sub> &le; d<sub>i</sub> &nbsp;&middot;&nbsp; &sum;<sub>i&isin;r</sub> x<sub>i</sub> &le; C<sub>r</sub></div>
+  </header>
+
+  <div class="cols" id="cols">
+    <div class="panel">
+      <div class="sec" id="tabbody"></div>
+      <div class="sec">
+        <h2>Feasibility constraints</h2>
+        <div class="cons" id="cons"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="stepbar">
+        <div class="steprow">
+          <div class="trans">
+            <button class="btn" id="first" title="First step" aria-label="First step">&#124;&#9664;</button>
+            <button class="btn" id="prev" title="Previous step" aria-label="Previous step">&#9664;</button>
+            <button class="btn primary" id="play" title="Play" aria-label="Play">&#9654;</button>
+            <button class="btn" id="next" title="Next step" aria-label="Next step">&#9654;</button>
+            <button class="btn" id="last" title="Final allocation" aria-label="Final allocation">&#9654;&#124;</button>
+          </div>
+          <input type="range" id="scrub" min="0" max="0" value="0" step="1" aria-label="Water-filling step">
+          <span class="counter" id="counter">round 0 / 0</span>
+          <span class="level" id="levelPill">t = 0</span>
+        </div>
+        <div class="caption" id="caption"></div>
+      </div>
+
+      <div class="duo">
+      <div class="panel">
+        <div class="sec" style="padding-bottom:8px"><h2>Water filling <span class="hint">bucket width &phi;<sub>i</sub>, height d<sub>i</sub>/&phi;<sub>i</sub>, water area x<sub>i</sub></span></h2></div>
+        <div class="legend" id="legend"></div>
+        <div class="chartwrap" id="bucketWrap"><svg id="buckets" role="img" aria-label="Water-filling buckets, one per flow"></svg></div>
+      </div>
+
+      <div class="panel">
+        <div class="sec" style="padding-bottom:10px"><h2>Link occupancy <span class="hint">bar length &prop; capacity</span></h2></div>
+        <div class="bars" id="bars"></div>
+      </div>
+      </div>
+
+      <div class="panel">
+        <div class="sec" style="padding-bottom:4px"><h2>Allocation &amp; bottlenecks <span class="hint">click a row to isolate a flow</span></h2></div>
+        <div class="tablewrap"><table id="restable"><thead></thead><tbody></tbody></table></div>
+        <div class="verdict" id="verdict"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+"use strict";
+const EPS = 1e-9, MAXL = 64, MAXF = 32, SUB = ["₀","₁","₂","₃","₄","₅","₆","₇","₈","₉"];
+const sub = n => String(n).split("").map(c => SUB[+c] ?? c).join("");
+const pretty = n => String(n).replace(/(\d+)$/, m => sub(m));
+const fmt = v => { if (!isFinite(v)) return "∞"; const r = Math.round(v * 1000) / 1000; return Number.isInteger(r) ? String(r) : String(r); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+/* ===================== model ===================== */
+let LINKS = [];   // {id,name,c}
+let FLOWS = [];   // {id,name,d,w,slot,route:Set<linkId>}
+let SOL = null, STEP = 0, TIMER = null, SEL = null;
+let lid = 1, fid = 1;
+
+const mono = () => FLOWS.length > 8;
+const colorOf = f => mono() ? (SEL === f.id ? "var(--accent)" : "var(--s1)") : `var(--s${f.slot + 1})`;
+const rateSym = f => /^f\d+$/.test(f.name) ? "x" + sub(f.name.slice(1)) : "x(" + f.name + ")";
+const weighted = () => FLOWS.some(f => Math.abs(f.w - 1) > 1e-12);
+const link = id => LINKS.find(l => l.id === id);
+const freeSlot = () => { const u = new Set(FLOWS.map(f => f.slot)); for (let s = 0; s < 8; s++) if (!u.has(s)) return s; return 0; };
+function uniqueName(list, base) { let k = 1; while (list.some(o => o.name === base + k)) k++; return base + k; }
+
+/* ===================== solver (unchanged, verified vs slides 6–15) ===================== */
+function solve() {
+  const F = FLOWS.length, L = LINKS.length;
+  const x = FLOWS.map(() => 0);
+  const state = FLOWS.map(() => null);
+  const steps = [{ level: 0, delta: 0, x: x.slice(), sat: [], froze: [], state: state.slice() }];
+  const usedOn = r => FLOWS.reduce((s, f, i) => s + (f.route.has(r.id) ? x[i] : 0), 0);
+  let level = 0, guard = 0;
+  while (state.some(s => s === null) && guard++ < F + L + 4) {
+    const active = []; for (let i = 0; i < F; i++) if (state[i] === null) active.push(i);
+    let delta = Infinity;
+    for (const r of LINKS) {
+      const W = active.reduce((s, i) => s + (FLOWS[i].route.has(r.id) ? FLOWS[i].w : 0), 0);
+      if (W > 1e-12) delta = Math.min(delta, Math.max(0, r.c - usedOn(r)) / W);
+    }
+    for (const i of active) delta = Math.min(delta, Math.max(0, FLOWS[i].d - x[i]) / FLOWS[i].w);
+    if (!isFinite(delta)) delta = 0;
+    level += delta;
+    for (const i of active) x[i] = Math.min(FLOWS[i].d, x[i] + FLOWS[i].w * delta);
+    const sat = [];
+    for (const r of LINKS) {
+      const W = active.reduce((s, i) => s + (FLOWS[i].route.has(r.id) ? FLOWS[i].w : 0), 0);
+      if (W > 1e-12 && usedOn(r) >= r.c - EPS) sat.push(r.id);
+    }
+    const froze = [];
+    for (const i of active) if (x[i] >= FLOWS[i].d - EPS) { x[i] = FLOWS[i].d; state[i] = { type: "demand" }; froze.push(i); }
+    for (const id of sat) for (const i of active) if (state[i] === null && FLOWS[i].route.has(id)) { state[i] = { type: "link", link: id }; froze.push(i); }
+    steps.push({ level, delta, x: x.slice(), sat, froze: [...new Set(froze)], state: state.slice() });
+  }
+  return { x, steps, state };
+}
+function analyse(sol) {
+  const norm = i => sol.x[i] / FLOWS[i].w;
+  return FLOWS.map((f, i) => {
+    const met = f.d > 0 ? sol.x[i] >= f.d - EPS : true;
+    const necks = [];
+    for (const r of LINKS) {
+      if (!f.route.has(r.id)) continue;
+      const users = FLOWS.map((g, j) => g.route.has(r.id) ? j : -1).filter(j => j >= 0);
+      if (users.reduce((s, j) => s + sol.x[j], 0) < r.c - EPS) continue;
+      if (norm(i) >= Math.max(...users.map(norm)) - EPS) necks.push(r.id);
+    }
+    return { met, necks, fair: met || necks.length > 0 };
+  });
+}
+
+/* ===================== opening instance ===================== */
+/* the instance the page opens on — a small network, so the first frame shows a solved problem */
+const START = { C: [3, 6, 7], d: [2, 4, 4], w: [1, 1, 1], via: [[0, 1, 2], [0, 1], [1, 2]] };
+function loadInstance(p) {
+  LINKS = p.C.map((c, i) => ({ id: lid++, name: "C" + (i + 1), c }));
+  FLOWS = p.d.map((d, i) => ({ id: fid++, name: "f" + (i + 1), d, w: p.w[i], slot: i % 8, route: new Set(p.via[i].map(k => LINKS[k].id)) }));
+  SEL = null; rebuild();
+}
+
+/* ===================== input views ===================== */
+function renderTab() {
+  document.getElementById("tabbody").innerHTML = `
+  <h3>Links <span style="float:right;text-transform:none;letter-spacing:0">${LINKS.length}/${MAXL}</span></h3>
+  <div class="colhead g-link"><span>Link</span><span>Capacity</span><span></span></div>
+  <div class="rows">${LINKS.map(l => `
+    <div class="row g-link">
+      <span class="tag">${esc(pretty(l.name))}</span>
+      <input type="number" step="any" min="0" value="${l.c}" data-cap="${l.id}" aria-label="Capacity of ${esc(l.name)}">
+      <button class="del" data-dellink="${l.id}" aria-label="Remove ${esc(l.name)}">&times;</button>
+    </div>`).join("") || `<p class="note">No links.</p>`}</div>
+  <div class="addrow"><button class="btn" id="addLink"${LINKS.length >= MAXL ? " disabled" : ""}>+ Add link</button></div>
+
+  <h3>Flows <span style="float:right;text-transform:none;letter-spacing:0">${FLOWS.length}/${MAXF}</span></h3>
+  <div class="colhead g-flow"><span>Flow</span><span>Demand</span><span>Weight</span><span>Uses links (by position)</span><span></span></div>
+  <div class="rows">${FLOWS.map(f => `
+    <div class="row g-flow">
+      <span class="tag"><i class="swatch" style="background:${colorOf(f)}"></i><span>${esc(pretty(f.name))}</span></span>
+      <input type="number" step="any" min="0" value="${f.d}" data-demand="${f.id}" aria-label="Demand of ${esc(f.name)}">
+      <input type="number" step="any" min="0.01" value="${f.w}" data-weight="${f.id}" aria-label="Weight of ${esc(f.name)}">
+      <span class="routes">${LINKS.map(l => `<button class="rbtn" data-route="${f.id}" data-link="${l.id}" aria-pressed="${f.route.has(l.id)}" title="${esc(f.name)} crosses ${esc(l.name)}">${LINKS.indexOf(l) + 1}</button>`).join("") || "—"}</span>
+      <button class="del" data-delflow="${f.id}" aria-label="Remove ${esc(f.name)}">&times;</button>
+    </div>`).join("") || `<p class="note">No flows.</p>`}</div>
+  <div class="addrow"><button class="btn" id="addFlow"${FLOWS.length >= MAXF ? " disabled" : ""}>+ Add flow</button></div>
+  <p class="note">A flow on no link is unconstrained and simply gets its demand.</p>`;
+}
+
+/* ===================== charts ===================== */
+function renderLegend() {
+  const el = document.getElementById("legend");
+  if (mono()) { el.innerHTML = `<span class="lg" style="cursor:default">${FLOWS.length} flows — too many for distinct colours; click a bucket, bar or table row to isolate one.</span>`; return; }
+  el.innerHTML = FLOWS.map(f => `<button class="lg${SEL != null && SEL !== f.id ? " dim" : ""}" data-sel="${f.id}">
+    <i style="background:${colorOf(f)}"></i>${esc(pretty(f.name))} <span style="color:var(--muted)">d = ${fmt(f.d)}${weighted() ? " · φ = " + fmt(f.w) : ""}</span></button>`).join("");
+}
+function niceTicks(max, n) {
+  if (!(max > 0)) return [0];
+  const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw - 1e-12) || 10 * mag;
+  const out = []; for (let v = 0; v <= max + 1e-9; v += step) out.push(Math.round(v * 1e6) / 1e6);
+  return out;
+}
+function topRounded(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, h, w / 2));
+  return `M ${x} ${(y + h).toFixed(1)} L ${x} ${(y + r).toFixed(1)} Q ${x} ${y.toFixed(1)} ${(x + r).toFixed(1)} ${y.toFixed(1)} L ${(x + w - r).toFixed(1)} ${y.toFixed(1)} Q ${(x + w).toFixed(1)} ${y.toFixed(1)} ${(x + w).toFixed(1)} ${(y + r).toFixed(1)} L ${(x + w).toFixed(1)} ${(y + h).toFixed(1)} Z`;
+}
+function renderBuckets() {
+  const svg = document.getElementById("buckets"), wrap = document.getElementById("bucketWrap"), st = SOL.steps[STEP];
+  if (!FLOWS.length) { svg.innerHTML = ""; svg.setAttribute("width", 0); svg.setAttribute("height", 0); return; }
+  const totalW = FLOWS.reduce((s, f) => s + f.w, 0) || 1, minW = Math.min(...FLOWS.map(f => f.w));
+  const padL = 46, padR = 18, padT = 18, gap = 8;
+  const avail = Math.max(300, wrap.clientWidth - 32) - padL - padR - gap * (FLOWS.length - 1);
+  let sx = Math.min(avail / totalW, 86);
+  if (minW * sx < 15) sx = Math.min(15 / minW, 140);
+  const narrow = minW * sx < 30, padB = narrow ? 62 : 40;
+  const innerW = totalW * sx + gap * (FLOWS.length - 1);
+  const W = Math.max(padL + innerW + padR, Math.max(300, wrap.clientWidth - 32)), H = 292 + (narrow ? 22 : 0);
+  const innerH = H - padT - padB, base = padT + innerH;
+  const yMax = Math.max(...FLOWS.map(f => f.d / f.w), SOL.steps[SOL.steps.length - 1].level, 1e-6) * 1.06;
+  const sy = innerH / yMax, Y = v => base - v * sy;
+  const plotW = W - padL - padR;
+  const o = [];
+  for (const t of niceTicks(yMax, 4)) {
+    o.push(`<line class="gridline" x1="${padL}" y1="${Y(t).toFixed(1)}" x2="${padL + plotW}" y2="${Y(t).toFixed(1)}"/>`);
+    o.push(`<text class="axistext" x="${padL - 8}" y="${(Y(t) + 3.5).toFixed(1)}" text-anchor="end">${fmt(t)}</text>`);
+  }
+  o.push(`<text class="axistext" x="${padL - 8}" y="${padT - 6}" text-anchor="end">${weighted() ? "x/φ" : "rate"}</text>`);
+  let cx = padL + Math.max(0, (plotW - innerW) / 2);
+  FLOWS.forEach((f, i) => {
+    const bw = f.w * sx, top = Y(f.d / f.w), h = base - top;
+    const lvl = st.x[i] / f.w, wy = Y(lvl), wh = base - wy;
+    const frozen = st.state[i] !== null, dim = SEL != null && SEL !== f.id;
+    const g = dim ? ' class="dim"' : "";
+    o.push(`<g${g}>`);
+    o.push(`<rect class="bucketbg" x="${cx.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" rx="3"/>`);
+    if (wh > 0.4) o.push(`<path d="${topRounded(cx, wy, bw, wh, Math.min(4, bw / 2))}" fill="${colorOf(f)}"/>`);
+    o.push(`<path class="bucketline" d="M ${cx.toFixed(1)} ${top.toFixed(1)} L ${cx.toFixed(1)} ${base} L ${(cx + bw).toFixed(1)} ${base} L ${(cx + bw).toFixed(1)} ${top.toFixed(1)}"/>`);
+    if (frozen && wh > 0.4) o.push(`<line class="freezecap" x1="${(cx + 1).toFixed(1)}" y1="${wy.toFixed(1)}" x2="${(cx + bw - 1).toFixed(1)}" y2="${wy.toFixed(1)}"/>`);
+    if (bw >= 22) o.push(`<text class="vallabel" x="${(cx + bw / 2).toFixed(1)}" y="${Math.max(padT + 10, wy - 6).toFixed(1)}" text-anchor="middle">${fmt(st.x[i])}</text>`);
+    const nm = pretty(f.name), lx = (cx + bw / 2).toFixed(1);
+    o.push(narrow
+      ? `<text class="flowlabel" transform="rotate(-90 ${lx} ${base + 14})" x="${lx}" y="${base + 14}" text-anchor="end">${esc(nm)}</text>`
+      : `<text class="flowlabel" x="${lx}" y="${base + 15}" text-anchor="middle">${esc(nm)}</text>`);
+    if (weighted() && !narrow) o.push(`<text class="wlabel" x="${lx}" y="${base + 28}" text-anchor="middle">φ ${fmt(f.w)}</text>`);
+    o.push(`</g>`);
+    const why = !frozen ? "still rising" : st.state[i].type === "demand" ? "frozen — demand met" : "frozen — " + link(st.state[i].link).name + " full";
+    o.push(`<rect class="hit" data-sel="${f.id}" x="${Math.min(cx, cx + bw / 2 - 12).toFixed(1)}" y="${padT}" width="${Math.max(bw, 24).toFixed(1)}" height="${(innerH + 22).toFixed(1)}" tabindex="0" role="button"
+      aria-label="${esc(nm)}: rate ${fmt(st.x[i])} of demand ${fmt(f.d)}, ${why}"
+      data-tip="${esc(nm)}  —  ${why}\nrate x = ${fmt(st.x[i])}   demand d = ${fmt(f.d)}\nweight φ = ${fmt(f.w)}   x/φ = ${fmt(lvl)}"/>`);
+    cx += bw + gap;
+  });
+  const ly = Y(st.level);
+  o.push(`<line class="levelline" x1="${padL}" y1="${ly.toFixed(1)}" x2="${(padL + plotW).toFixed(1)}" y2="${ly.toFixed(1)}"/>`);
+  o.push(`<text class="axistext" x="${padL + plotW}" y="${(ly - 6).toFixed(1)}" text-anchor="end" style="fill:var(--ink-2)">level t = ${fmt(st.level)}</text>`);
+  svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = o.join("");
+}
+function renderBars() {
+  const st = SOL.steps[STEP], maxC = Math.max(...LINKS.map(l => l.c), 1e-6);
+  document.getElementById("bars").innerHTML = LINKS.map(l => {
+    const users = FLOWS.map((f, i) => f.route.has(l.id) ? i : -1).filter(i => i >= 0);
+    const used = users.reduce((s, i) => s + st.x[i], 0);
+    const full = users.length > 0 && used >= l.c - EPS;
+    const segs = users.map(i => {
+      const f = FLOWS[i], pct = l.c > 0 ? (st.x[i] / l.c) * 100 : 0, dim = SEL != null && SEL !== f.id;
+      return `<div class="bseg${dim ? " dim" : ""}" data-sel="${f.id}" style="width:${pct.toFixed(3)}%;background:${colorOf(f)}" tabindex="0" role="button"
+        aria-label="${esc(f.name)} uses ${fmt(st.x[i])} of ${esc(l.name)}"
+        data-tip="${esc(l.name)} ← ${esc(pretty(f.name))}\ncarries ${fmt(st.x[i])} of capacity ${fmt(l.c)}"></div>`;
+    }).join("");
+    return `<div class="brow">
+      <span class="bname">${esc(pretty(l.name))}</span>
+      <div class="bfield"><div class="btrack${full ? " sat" : ""}" style="width:${((l.c / maxC) * 100).toFixed(2)}%">${segs}</div></div>
+      <span class="bmeta">${fmt(used)} / ${fmt(l.c)} ${full ? '<span class="chip sat">saturated</span>' : `<span class="chip ghost">${fmt(Math.max(0, l.c - used))} free</span>`}</span>
+    </div>`;
+  }).join("") || `<p class="note" style="padding:0 0 4px">Add a link to see occupancy.</p>`;
+}
+function renderTable() {
+  const st = SOL.steps[STEP], fin = STEP === SOL.steps.length - 1, w = weighted();
+  const an = analyse({ x: st.x });
+  document.querySelector("#restable thead").innerHTML =
+    `<tr><th>Flow</th><th>d<sub>i</sub></th>${w ? "<th>φ<sub>i</sub></th>" : ""}<th>x<sub>i</sub></th>${w ? "<th>x<sub>i</sub>/φ<sub>i</sub></th>" : ""}<th>Status</th></tr>`;
+  document.querySelector("#restable tbody").innerHTML = FLOWS.map((f, i) => {
+    const s = st.state[i];
+    let status = !s ? `<span class="chip ghost">rising</span>`
+      : s.type === "demand" ? `<span class="chip met">demand met</span>`
+      : `<span class="chip sat">bottleneck ${esc(pretty(link(s.link).name))}</span>`;
+    if (fin && s && s.type === "link" && an[i].necks.length > 1)
+      status += ` <span style="color:var(--muted)">also ${an[i].necks.filter(id => id !== s.link).map(id => esc(pretty(link(id).name))).join(", ")}</span>`;
+    return `<tr data-sel="${f.id}" class="${SEL === f.id ? "on" : ""}">
+      <td><span class="tag"><i class="swatch" style="background:${colorOf(f)}"></i><span>${esc(pretty(f.name))}</span></span></td>
+      <td>${fmt(f.d)}</td>${w ? `<td>${fmt(f.w)}</td>` : ""}
+      <td>${fmt(st.x[i])}</td>${w ? `<td>${fmt(st.x[i] / f.w)}</td>` : ""}
+      <td class="reason">${status}</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="reason">No flows.</td></tr>`;
+
+  const v = document.getElementById("verdict");
+  v.classList.remove("bad");
+  if (!fin) { v.innerHTML = `<b>Mid-run.</b> Step to the final round to test the bottleneck condition. <span class="cite">Slide 11 — a flow's bottleneck is a saturated link on which it holds the maximum rate.</span>`; return; }
+  const full = analyse(SOL), bad = FLOWS.filter((f, i) => !full[i].fair);
+  const nNeck = full.filter(a => a.necks.length).length, nMet = full.filter(a => a.met && !a.necks.length).length;
+  if (bad.length) {
+    v.classList.add("bad");
+    v.innerHTML = `<b>Not max-min fair.</b> ${bad.map(f => esc(pretty(f.name))).join(", ")} ${bad.length > 1 ? "are" : "is"} neither demand-limited nor bottlenecked, so ${bad.length > 1 ? "they" : "it"} could still be raised.
+      <span class="cite">This normally means a flow uses no link at all, or every link it crosses has spare capacity.</span>`;
+  } else {
+    v.innerHTML = `<b>Max-min fair.</b> ${nNeck} flow${nNeck === 1 ? "" : "s"} bottlenecked at a saturated link${nMet ? `, ${nMet} limited by ${nMet === 1 ? "its own demand" : "their own demands"}` : ""}.
+      <span class="cite">Every flow either saturates a link on which it holds the maximum ${weighted() ? "weighted " : ""}rate, or is limited by its own demand — the finite-demand form of the slide 11 condition.</span>`;
+  }
+}
+function renderConstraints() {
+  const st = SOL.steps[STEP];
+  const rows = LINKS.map(l => {
+    const users = FLOWS.map((f, i) => f.route.has(l.id) ? i : -1).filter(i => i >= 0);
+    const used = users.reduce((s, i) => s + st.x[i], 0);
+    const full = users.length > 0 && used >= l.c - EPS;
+    const lhs = users.length ? users.map(i => rateSym(FLOWS[i])).join(" + ") : "0";
+    return `<div class="${full ? "full" : ""}"><span class="lhs">${esc(lhs)} ≤ ${fmt(l.c)}</span><span class="rhs">${fmt(used)} / ${fmt(l.c)}${full ? " ●" : ""}</span></div>`;
+  });
+  FLOWS.forEach((f, i) => { if (f.route.size === 0) rows.push(`<div><span class="lhs">${esc(pretty(f.name))} unconstrained</span><span class="rhs">${fmt(st.x[i])}</span></div>`); });
+  document.getElementById("cons").innerHTML = rows.join("") || `<p class="note">Nothing to constrain yet.</p>`;
+}
+
+/* ===================== steps ===================== */
+function caption(k) {
+  if (k === 0) return "<b>Start.</b> Every rate sits at zero; all flows are free to rise.";
+  const st = SOL.steps[k], parts = [];
+  const dem = st.froze.filter(i => st.state[i] && st.state[i].type === "demand");
+  const lnk = st.froze.filter(i => st.state[i] && st.state[i].type === "link");
+  const nm = i => esc(pretty(FLOWS[i].name));
+  if (st.sat.length) parts.push(`<b>${st.sat.map(id => esc(pretty(link(id).name))).join(" and ")}</b> ${st.sat.length > 1 ? "saturate" : "saturates"}`);
+  if (dem.length) parts.push(`<b>${dem.map(nm).join(", ")}</b> ${dem.length > 1 ? "reach their demands" : "reaches its demand"}`);
+  const head = st.delta < EPS
+    ? `Level holds at <b>t = ${fmt(st.level)}</b> — ${parts.join(" and ") || "nothing rises"}.`
+    : `Level rises by ${fmt(st.delta)} to <b>t = ${fmt(st.level)}</b>: ${parts.join(", and ") || "—"}.`;
+  const tail = lnk.length ? ` ${lnk.map(nm).join(", ")} freeze${lnk.length > 1 ? "" : "s"} with ${[...new Set(lnk.map(i => esc(pretty(link(st.state[i].link).name))))].join(" / ")} as bottleneck.` : "";
+  return head + tail;
+}
+function renderStep() {
+  const n = SOL.steps.length - 1, s = document.getElementById("scrub");
+  s.max = n; s.value = STEP;
+  document.getElementById("counter").textContent = `round ${STEP} / ${n}`;
+  document.getElementById("levelPill").textContent = `t = ${fmt(SOL.steps[STEP].level)}`;
+  document.getElementById("caption").innerHTML = caption(STEP);
+  document.getElementById("first").disabled = document.getElementById("prev").disabled = STEP === 0;
+  document.getElementById("next").disabled = document.getElementById("last").disabled = STEP === n;
+  renderBuckets(); renderBars(); renderTable(); renderConstraints();
+}
+function recompute() { SOL = solve(); STEP = SOL.steps.length - 1; renderLegend(); renderStep(); }
+function rebuild() { renderTab(); recompute(); }
+function touched() { stop(); rebuild(); }
+function goto(k) { stop(); STEP = Math.max(0, Math.min(SOL.steps.length - 1, k)); renderStep(); }
+function stop() { if (TIMER) { clearInterval(TIMER); TIMER = null; const b = document.getElementById("play"); b.innerHTML = "&#9654;"; b.title = "Play"; } }
+function play() {
+  if (TIMER) return stop();
+  if (STEP === SOL.steps.length - 1) STEP = 0;
+  const b = document.getElementById("play"); b.innerHTML = "&#10073;&#10073;"; b.title = "Pause";
+  renderStep();
+  TIMER = setInterval(() => { if (STEP >= SOL.steps.length - 1) return stop(); STEP++; renderStep(); }, 1100);
+}
+function select(id) { SEL = SEL === id ? null : id; renderLegend(); renderStep(); renderTab(); }
+
+/* ===================== events ===================== */
+document.addEventListener("click", e => {
+  const sel = e.target.closest("[data-sel]");
+  if (sel && !e.target.closest("input,select")) { select(+sel.dataset.sel); return; }
+  const t = e.target.closest("button"); if (!t) return;
+  const d = t.dataset;
+  if (d.dellink) { const id = +d.dellink; LINKS = LINKS.filter(l => l.id !== id); FLOWS.forEach(f => f.route.delete(id)); touched(); }
+  else if (d.delflow) { FLOWS = FLOWS.filter(f => f.id !== +d.delflow); if (SEL === +d.delflow) SEL = null; touched(); }
+  else if (d.route) { const f = FLOWS.find(f => f.id === +d.route), id = +d.link; f.route.has(id) ? f.route.delete(id) : f.route.add(id); touched(); }
+  else if (t.id === "addLink") { if (LINKS.length < MAXL) { LINKS.push({ id: lid++, name: uniqueName(LINKS, "C"), c: 5 }); touched(); } }
+  else if (t.id === "addFlow") {
+    if (FLOWS.length < MAXF) { FLOWS.push({ id: fid++, name: uniqueName(FLOWS, "f"), d: 4, w: 1, slot: freeSlot(), route: new Set(LINKS.map(l => l.id)) }); touched(); }
+  }
+  else if (t.id === "first") goto(0);
+  else if (t.id === "prev") goto(STEP - 1);
+  else if (t.id === "next") goto(STEP + 1);
+  else if (t.id === "last") goto(SOL.steps.length - 1);
+  else if (t.id === "play") play();
+});
+
+document.addEventListener("input", e => {
+  const el = e.target, d = el.dataset;
+  if (el.id === "scrub") { stop(); STEP = +el.value; renderStep(); return; }
+  if (!el.matches("input[type=number]")) return;
+  const v = parseFloat(el.value);
+  if (d.cap) link(+d.cap).c = isFinite(v) && v >= 0 ? v : 0;
+  else if (d.demand) FLOWS.find(f => f.id === +d.demand).d = isFinite(v) && v >= 0 ? v : 0;
+  else if (d.weight) FLOWS.find(f => f.id === +d.weight).w = isFinite(v) && v > 0 ? v : 0.01;
+  else return;
+  stop(); recompute(); renderLegend();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.target.matches("input")) return;
+  if (e.key === "ArrowRight") { goto(STEP + 1); e.preventDefault(); }
+  else if (e.key === "ArrowLeft") { goto(STEP - 1); e.preventDefault(); }
+  else if (e.key === " " && !e.target.closest("button")) { play(); e.preventDefault(); }
+});
+
+/* tooltip */
+const tip = document.getElementById("tip");
+function showTip(el) { const d = el.getAttribute("data-tip"); if (!d) return; tip.textContent = d; tip.classList.add("on"); const r = el.getBoundingClientRect(); tip.style.left = Math.round(r.left + r.width / 2) + "px"; tip.style.top = Math.round(r.top - 8) + "px"; }
+function hideTip() { tip.classList.remove("on"); }
+document.addEventListener("pointerover", e => { const el = e.target.closest("[data-tip]"); el ? showTip(el) : hideTip(); });
+document.addEventListener("focusin", e => { const el = e.target.closest("[data-tip]"); el ? showTip(el) : hideTip(); });
+document.addEventListener("focusout", hideTip);
+document.addEventListener("scroll", hideTip, true);
+
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderBuckets, 120); });
+loadInstance(START);
+</script>
+
+<script>
+/* Standalone-only: the artifact host stamps data-theme on :root and the page's CSS already
+   honours it in both directions. Nothing stamps it in a plain browser, so offer the control -
+   useful when projecting in a lit room from a laptop that sits in dark mode. */
+(function () {
+  var root = document.documentElement, mode = "auto";
+  try { mode = localStorage.getItem("wf-theme") || "auto"; } catch (e) {}
+  var rule = document.querySelector(".hd .rule");
+  if (!rule || !rule.parentNode) return;
+
+  /* Stack the button under the formula with a WRAPPER. Do not make .rule itself a flex
+     column: that promotes each inline child - every <sub> in the formula - to its own
+     flex item, and the formula renders one fragment per line. */
+  var box = document.createElement("div");
+  box.style.cssText = "display:flex;flex-direction:column;align-items:flex-end;gap:10px";
+  rule.parentNode.insertBefore(box, rule);
+  box.appendChild(rule);
+
+  var b = document.createElement("button");
+  b.className = "btn";
+  function apply() {
+    if (mode === "auto") delete root.dataset.theme; else root.dataset.theme = mode;
+    b.textContent = "Theme: " + mode;
+    b.setAttribute("aria-label", "Colour theme " + mode + ". Click to change.");
+  }
+  b.addEventListener("click", function () {
+    mode = mode === "auto" ? "light" : mode === "light" ? "dark" : "auto";
+    try { localStorage.setItem("wf-theme", mode); } catch (e) {}
+    apply();
+  });
+  apply();
+  box.appendChild(b);
+})();
+</script>
+</body>
+</html>
