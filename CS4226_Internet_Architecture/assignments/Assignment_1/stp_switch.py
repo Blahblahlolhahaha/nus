@@ -67,18 +67,55 @@ class StpSwitch(app_manager.RyuApp):
         # DO NOT DELETE the table-miss entry!
         # CHECK_THIS_OUT
         # https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#ryu.ofproto.ofproto_v1_3_parser.OFPFlowMod
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        for mac in self.mac_to_port[datapath.id].keys():
+            match = parser.OFPMatch(eth_dst=mac)
+            mod = parser.OFPFlowMod(datapath=datapath, command=ofproto_v1_3.OFPFC_DELETE,
+                                out_port=ofproto_v1_3.OFPP_ANY, out_group=ofproto_v1_3.OFPG_ANY,
+                                table_id=ofproto_v1_3.OFPTT_ALL, match=match)
+            datapath.send_msg(mod)
         pass
         
 
     @set_ev_cls(stplib.EventPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        
-        # TODO: copy your implementation of _packet_in_handler for the simple_switch here
-        # Notice that the decorator of this function is different
-        # the handler for the simple switch listens to ofp_event.EventOFPPacketIn
-        # while here we are listening to stplib.EventPacketIn
-        pass
+        msg = ev.msg
+        datapath = msg.datapath
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        in_port = msg.match['in_port']
 
+        pkt = packet.Packet(msg.data)
+        eth = pkt.get_protocols(ethernet.ethernet)[0]
+
+        if eth.ethertype == ether_types.ETH_TYPE_LLDP:
+            return
+        dst = eth.dst
+        src = eth.src
+
+        dpid = datapath.id
+        
+        self.mac_to_port.setdefault(dpid, {})
+
+        self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+
+        self.logger.info("adding %s to %s as %s", src, dpid, in_port)
+        self.mac_to_port[dpid][src] = in_port
+
+        if dst in self.mac_to_port[dpid]:
+            output_port = self.mac_to_port[dpid][dst]
+        else:
+            output_port = ofproto_v1_3.OFPP_FLOOD
+
+        actions = [parser.OFPActionOutput(output_port, 0)]
+        if not output_port == ofproto_v1_3.OFPP_FLOOD:
+            match = parser.OFPMatch(eth_src=src, eth_dst=dst, in_port=in_port)
+            self.add_flow(datapath, 100, match, actions)
+
+        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+            req = parser.OFPPacketOut(datapath, msg.buffer_id, in_port, actions, data=pkt)
+            datapath.send_msg(req)
 
     @set_ev_cls(stplib.EventTopologyChange, MAIN_DISPATCHER)
     def _topology_change_handler(self, ev):
@@ -89,3 +126,6 @@ class StpSwitch(app_manager.RyuApp):
 
         # TODO: If there are any flow rules added to the datapath through the learning process, delete those
         
+        if dp.id in self.mac_to_port:
+            self.delete_flow(dp)
+            del self.mac_to_port[dp.id]

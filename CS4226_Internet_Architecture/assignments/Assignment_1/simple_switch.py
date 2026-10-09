@@ -131,7 +131,6 @@ class SimpleSwitch(app_manager.RyuApp):
         # and it will automatically forward it according to the flow rule just installed
         # CHECK_THIS_OUT
         # https://ryu.readthedocs.io/en/latest/ofproto_v1_3_ref.html#ryu.ofproto.ofproto_v1_3_parser.OFPPacketOut
-        self.logger.info("%s", msg.buffer_id == ofproto_v1_3.OFP_NO_BUFFER)
-        req = parser.OFPPacketOut(datapath, msg.buffer_id, in_port, actions, data=pkt)
-        datapath.send_msg(req)
-        self.logger.info("%s", req)
+        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+            req = parser.OFPPacketOut(datapath, msg.buffer_id, in_port, actions, data=pkt)
+            datapath.send_msg(req)
