@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>User Search</title>
+</head>
+<body>
+  <h1>User Search</h1>
+  <form id="search-form">
+    <label for="uid">User ID:</label>
+    <input id="uid" name="uid" type="text" inputmode="numeric" pattern="[0-9]+" required>
+    <button type="submit">Search</button>
+  </form>
+  <div id="results" role="status" aria-live="polite"></div>
+
+  <script>
+    const form = document.getElementById('search-form');
+    const results = document.getElementById('results');
+    const button = form.querySelector('button');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const uid = document.getElementById('uid').value;
+      button.disabled = true;
+      results.textContent = 'Loading…';
+
+      try {
+        const response = await fetch(`/user/${encodeURIComponent(uid)}`);
+        if (!response.ok) throw new Error('Unable to load user. Please try again.');
+
+        if (!response.headers.get('content-type')?.includes('application/json')) {
+          results.textContent = await response.text();
+          return;
+        }
+
+        const user = await response.json();
+        const followers = document.createElement('p');
+        followers.textContent = `UserID${user.uid} has ${user.follower_count} followers`;
+        const followees = document.createElement('p');
+        followees.textContent = `UserID${user.uid} has ${user.followee_count} followees`;
+        results.replaceChildren(followers, followees);
+      } catch (error) {
+        results.textContent = 'Unable to load user. Please try again.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
