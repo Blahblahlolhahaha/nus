@@ -42,7 +42,7 @@ int main() {
         for(j = i*10; j<i*10 + 10; j++){
             printf("%d ", j);
             fflush(stdout);
-            usleep(100000);
+            usleep(10);
 	    }
 
         printf("\n\n");
