@@ -19,16 +19,13 @@ df = df.withColumn("followee", split_col.getItem(1))["follower","followee"]
 
 uids = df.select("follower").union(df.select("followee")).distinct().withColumnRenamed("follower", "uid")
 
-follower_counts = df.groupBy("followee").count().withColumnRenamed("followee", "uid").withColumnRenamed("count", "follower_count")
-followee_counts = df.groupBy("follower").count().withColumnRenamed("follower", "uid").withColumnRenamed("count", "followee_count")
-
-uids = uids.join(follower_counts, on="uid", how="right").fillna({"follower_count": 0 })
-uids = uids.join(followee_counts, on="uid", how="right").fillna({"followee_count": 0 })
+follower_counts = df.groupBy("followee").agg(F.countDistinct("follower").alias("follower_count")).withColumnRenamed("followee", "uid")
+followee_counts = df.groupBy("follower").agg(F.countDistinct("followee").alias("followee_count")).withColumnRenamed("follower", "uid")
+uids = (
+    uids.join(followee_counts, on="uid", how="left")
+    .join(follower_counts, on="uid", how="left")
+    .fillna({"follower_count": 0, "followee_count": 0 })
+)
 uids.write.format("bigquery").option("project", PROJECT_ID).mode("overwrite").save("twitter.twitter_ids")
-
-
-#df_res = spark.createDataFrame([],schema=columns)
-
-
 
 spark.stop()
