@@ -30,6 +30,17 @@ async def controller_ready_handler(
     # Clear entities in P4 switch
     await switch.delete_all()
 
+    ports = switch.stash["interfaces"]
+    for ingress_port in ports:
+        await switch.write([
+            +finsy.P4MulticastGroupEntry(
+                multicast_group_id = ingress_port,
+                replicas = [
+                    port for port in ports if port != ingress_port
+                ]
+            )
+        ])
+
 async def main():
     info_file_path = pathlib.Path(
         os.path.join(
