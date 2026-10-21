@@ -28,7 +28,23 @@ control MyIngress(
     inout metadata meta,
     inout standard_metadata_t standard_metadata
 ) {
-    apply { }
+    action set_egress_spec(bit<9> port) {
+        standard_metadata.egress_spec = port;
+    }
+    table forward {
+        key = { standard_metadata.ingress_port: exact; }
+        actions = {
+            set_egress_spec;
+            NoAction;
+        }
+        size = 1024;
+        default_action = NoAction();
+        const entries = {
+            1: set_egress_spec(2);
+            2: set_egress_spec(1);
+        }
+    }
+    apply { forward.apply(); }
 }
 
 control MyEgress(
