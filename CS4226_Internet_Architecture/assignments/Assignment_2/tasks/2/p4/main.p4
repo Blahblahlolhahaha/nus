@@ -1,9 +1,43 @@
 #include <core.p4>
 #include <v1model.p4>
 
+typedef bit<48> macAddr_t;
+typedef bit<32> ip4Addr_t;
+
 struct metadata { }
 
-struct headers { }
+header ethernet_t {
+    macAddr_t dstAddr;
+    macAddr_t srcAddr;
+    bit<16>   etherType;
+}
+
+header ipv4_t {
+    bit<4>    version;
+    bit<4>    ihl;
+    bit<8>    diffserv;
+    bit<16>   totalLen;
+    bit<16>   identification;
+    bit<3>    flags;
+bit<13>   fragOffset;
+    bit<8>    ttl;
+    bit<8>    protocol;
+    bit<16>   hdrChecksum;
+    ip4Addr_t srcAddr;
+    ip4Addr_t dstAddr;
+}
+
+header icmp_t {
+    bit<8> type;
+    bit<8> code;
+    bit<16> checksum;
+}
+
+struct headers {
+ethernet_t   ethernet;
+    ipv4_t       ipv4;
+    icmp_t       icmp;
+}
 
 parser MyParser(
     packet_in packet,
@@ -12,6 +46,27 @@ parser MyParser(
     inout standard_metadata_t standard_metadata
 ) {
     state start {
+        transition parse_ethernet;
+    }
+
+    state parse_ethernet {
+        packet.extract(hdr.ethernet);
+        transition select(hdr.ethernet.etherType) {
+            0x800: parse_ipv4;
+            default: accept;
+        }
+    }
+
+    state parse_ipv4 {
+        packet.extract(hdr.ipv4);
+        transition select(hdr.ipv4.protocol) {
+            0x1: parse_icmp;
+            default: accept;
+        }
+    }
+
+    state parse_icmp {
+        packet.extract(hdr.icmp);
         transition accept;
     }
 }
@@ -28,7 +83,28 @@ control MyIngress(
     inout metadata meta,
     inout standard_metadata_t standard_metadata
 ) {
-    apply { }
+    ip4Addr_t tmp_ipv4;
+    macAddr_t tmp_mac;
+    apply { 
+        if( hdr.ipv4.isValid() && 
+            hdr.icmp.isValid() &&
+            hdr.ipv4.protocol == 1 && 
+            hdr.icmp.type == 8 &&
+            hdr.icmp.code == 0) {
+            
+            hdr.icmp.type = 0;
+            tmp_ipv4 = hdr.ipv4.srcAddr;
+            tmp_mac = hdr.ethernet.srcAddr;
+            hdr.ipv4.srcAddr = hdr.ipv4.dstAddr;
+            hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
+            hdr.ipv4.dstAddr = tmp_ipv4;
+            hdr.ethernet.dstAddr = tmp_mac;
+
+            standard_metadata.egress_spec = standard_metadata.ingress_port;
+        } else {
+            mark_to_drop(standard_metadata);
+        }
+    }
 }
 
 control MyEgress(
@@ -43,14 +119,43 @@ control MyComputeChecksum(
     inout headers hdr,
     inout metadata meta
 ) {
-    apply { }
+    apply { 
+        update_checksum_with_payload(
+            hdr.icmp.isValid(),
+            { 
+                hdr.icmp.type,
+                hdr.icmp.code
+            },
+            hdr.icmp.checksum,
+            HashAlgorithm.csum16
+        );
+        update_checksum(
+            hdr.ipv4.isValid(),
+            { hdr.ipv4.version,
+              hdr.ipv4.ihl,
+              hdr.ipv4.diffserv,
+              hdr.ipv4.totalLen,
+              hdr.ipv4.identification,
+              hdr.ipv4.flags,
+              hdr.ipv4.fragOffset,
+              hdr.ipv4.ttl,
+              hdr.ipv4.protocol,
+              hdr.ipv4.srcAddr,
+              hdr.ipv4.dstAddr },
+              hdr.ipv4.hdrChecksum,
+              HashAlgorithm.csum16);
+    }
 }
 
 control MyDeparser(
     packet_out packet,
     in headers hdr
 ) {
-    apply { }
+    apply { 
+        packet.emit(hdr.ethernet);
+        packet.emit(hdr.ipv4);
+        packet.emit(hdr.icmp);
+    }
 }
 
 V1Switch(
