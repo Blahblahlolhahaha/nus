@@ -116,7 +116,7 @@ class SimpleSwitch(app_manager.RyuApp):
         # install a flow to avoid packet_in next time
         if not output_port == ofproto_v1_3.OFPP_FLOOD:
             match = parser.OFPMatch(eth_src=src, eth_dst=dst, in_port=in_port)
-            self.add_flow(datapath, 100, match, actions)
+            self.add_flow(datapath, 100, match, actions, buffer_id=msg.buffer_id)
             # TODO: create an OFPMatch instance to match all the packets
             # with (ethernet source address==src AND ethernet destination address==dst AND received from in_port)
             # use self.add_flow()

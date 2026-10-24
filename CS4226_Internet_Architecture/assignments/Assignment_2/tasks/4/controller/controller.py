@@ -24,11 +24,67 @@ logger = finsy.LoggerAdapter(
     logging.getLogger("finsy")
 )
 
+
 async def controller_ready_handler(
     switch: finsy.Switch
 ):
+    learned = {}
     # Clear entities in P4 switch
     await switch.delete_all()
+    
+    async def learn_mac():
+        async for batch in switch.read_digests("digest_t"):
+            for record in batch:
+                mac = record["srcAddr"]
+                port = record["ingressPort"]
+                if mac == 0 or (mac & 0x010000000000):
+                    continue
+                old = learned.get(mac)
+                if old == port:
+                    continue
+                
+                entry = finsy.P4TableEntry(
+                    "MyIngress.mac_forward",
+                    match = finsy.P4TableMatch(
+                        dstAddr = mac
+                    ),
+                    action = finsy.P4TableAction(
+                        "MyIngress.forward",
+                        port=port
+                    )
+                )
+
+                if old is None:
+                    await switch.write([+entry])
+                else:
+                    await switch.write([~entry])
+                learned[mac] = port
+                logger.info(
+                    "LEARN switch=%s mac=%012x port=%s",
+                    switch.name,
+                    mac,
+                    port,
+                )
+            await switch.write([batch.ack()])
+
+    ports = switch.stash["interfaces"]
+    for ingress_port in ports:
+        await switch.write([
+            +finsy.P4MulticastGroupEntry(
+                multicast_group_id = ingress_port,
+                replicas = [
+                    port for port in ports if port != ingress_port
+                ]
+            )
+        ])
+    switch.create_task(learn_mac())
+    await switch.write([
+        +finsy.P4DigestEntry(
+            "digest_t",
+            max_list_size = 1,
+            ack_timeout_ns=1_000_000_000
+        )
+    ])
 
 async def main():
     info_file_path = pathlib.Path(
